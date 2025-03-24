@@ -20,7 +20,6 @@ function passwd {
 
     if [ -f "$PASSWORD_FILE" ]; then
         export PASSWORD=$(cat "$PASSWORD_FILE")
-        echo "[$(color "Ok" "32")] Mot de passe chargé depuis $PASSWORD_FILE."
     else
         read -s -p "$(color "Entrez votre mot de passe sudo : " "96")" PASSWORD
         echo
@@ -51,6 +50,47 @@ function no_passwd {
         fi
     fi
 }
+function is_installed {
+    local program="$1"
 
-passwd
-no_passwd
+    # Verificar si el programa está en el PATH
+    if command -v "$program" &> /dev/null; then
+        echo "[$(color "Ok" "32")] $program est installé (via PATH)"
+        return 0
+    fi
+
+    # Verificar si el programa está instalado via dpkg
+    if dpkg-query -W -f='${Status}' "$program" 2>/dev/null | grep -q "ok installed"; then
+        echo "[$(color "Ok" "32")] $program est installé (via dpkg)"
+        return 0
+    fi
+
+    # Verificar si el programa está instalado via Snap
+    if snap list 2>/dev/null | grep -qw "$program"; then
+        echo "[$(color "Ok" "32")] $program est installé (via Snap)"
+        return 0
+    fi
+
+    # Verificar si el programa está instalado via Flatpak
+    if flatpak list 2>/dev/null | grep -qw "$program"; then
+        echo "[$(color "Ok" "32")] $program est installé (via Flatpak)"
+        return 0
+    fi
+
+    # Verificar si el programa está instalado via AppImage
+    if find /home/$USER -name "*$program*.AppImage" -exec test -x {} \; -print -quit 2>/dev/null | grep -q .; then
+        echo "[$(color "Ok" "32")] $program est installé (via AppImage)"
+        return 0
+    fi
+
+    # Si no se encuentra el programa, devolver 1 sin mostrar nada
+    return 1
+}
+
+
+function main {
+    local DISTRO=$(get_distro)
+    read -p "$(color "Entrez le programme a verifier : " "96")" program
+    is_installed "$program"
+}
+main
