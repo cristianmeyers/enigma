@@ -50,6 +50,7 @@ function no_passwd {
         fi
     fi
 }
+
 function is_installed {
     local program="$1"
 
@@ -87,10 +88,10 @@ function is_installed {
     return 1
 }
 
-
 function main {
     local DISTRO=$(get_distro)
     read -p "$(color "Entrez le programme a verifier : " "96")" program
     is_installed "$program"
 }
+
 main
