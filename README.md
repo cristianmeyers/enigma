@@ -1,8 +1,10 @@
-# **Script d'Installation pour la Cybersécurité**
+# ENIGMA
+
+## **Script d'Installation pour la Cybersécurité**
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Ce script automatise l'installation d'une série d'outils essentiels pour la cybersécurité sur les systèmes Linux. Il est conçu pour simplifier la configuration d'un environnement sécurisé et efficace pour les professionnels de la sécurité, les chercheurs ou les passionnés.
+Ce script automatise l'installation et la configuration d'une suite complète d'outils essentiels pour la cybersécurité sur des systèmes Linux. Il est conçu pour simplifier la configuration d'un environnement sécurisé et efficace, adapté aux professionnels de la sécurité, chercheurs, étudiants ou passionnés.
 
 ---
 
@@ -14,43 +16,51 @@ Ce script automatise l'installation d'une série d'outils essentiels pour la cyb
 4. [Installation](#installation)
 5. [Utilisation](#utilisation)
 6. [Liste des Programmes Installés](#liste-des-programmes-installés)
-7. [Contributions](#contributions)
-8. [Licence](#licence)
+7. [Personnalisation](#personnalisation)
+8. [Contributions](#contributions)
+9. [Licence](#licence)
 
 ---
 
-## **Description du Projet**
+## **Description du Script**
 
-L'objectif de ce script est de fournir une solution rapide et facile pour configurer un environnement de cybersécurité sur les systèmes Linux. Il automatise l'installation d'outils clés, vérifie s'ils sont déjà installés et configure les permissions nécessaires pour leur utilisation.
+L'objectif principal de ce script est de fournir une solution rapide et facile pour configurer un environnement dédié à la cybersécurité. Il automatise l'installation de nombreux outils populaires, vérifie s'ils sont déjà installés et configure les permissions nécessaires pour leur utilisation.
 
-Ce projet est idéal pour :
+Ce script est idéal pour :
 
-- Les professionnels de la cybersécurité.
-- Les chercheurs en vulnérabilités.
-- Les étudiants en sécurité informatique.
-- Toute personne intéressée par l'apprentissage des outils de cybersécurité.
+- Les **professionnels de la cybersécurité** qui ont besoin d'un environnement prêt à l'emploi.
+- Les **chercheurs en vulnérabilités** qui veulent tester des scénarios d'attaque ou de défense.
+- Les **étudiants en sécurité informatique** qui apprennent à utiliser des outils spécialisés.
+- Toute personne intéressée par l'apprentissage des techniques de cybersécurité.
 
 ---
 
 ## **Caractéristiques Principales**
 
-- **Automatisation :** Installe automatiquement tous les outils nécessaires sans intervention manuelle.
-- **Vérification :** Vérifie si les outils sont déjà installés avant de tenter de les réinstaller.
-- **Compatibilité :** Compatible avec les distributions basées sur Debian/Ubuntu et autres utilisant `apt`, `snap`, `flatpak` ou `AppImage`.
-- **Configuration de Sudo :** Configure les permissions `NOPASSWD` pour éviter la saisie répétée de mots de passe lors de l'exécution de commandes administratives.
-- **Personnalisable :** Facilement extensible pour ajouter plus d'outils selon vos besoins.
+- **Automatisation complète :** Installe tous les outils nécessaires sans intervention manuelle.
+- **Vérification préalable :** Vérifie si les outils sont déjà installés avant de tenter de les réinstaller.
+- **Compatibilité multi-distribution :** Compatible avec les distributions basées sur Debian/Ubuntu (via `apt`), Fedora/RHEL (via `dnf`), Arch Linux (via `pacman`) et autres.
+- **Configuration avancée :**
+  - Configure les permissions `NOPASSWD` pour éviter la saisie répétée de mots de passe lors de l'exécution de commandes administratives.
+  - Gère les installations via `snap`, `flatpak` et `AppImage`.
+- **Extensibilité :** Facilement personnalisable pour ajouter ou supprimer des outils selon vos besoins.
 
 ---
 
 ## **Prérequis**
 
-- Système d'exploitation Linux (testé sur Ubuntu, Debian et dérivés).
-- Accès à un compte avec privilèges superutilisateur (`sudo`).
-- Connexion Internet pour télécharger et installer les outils.
+Avant d'exécuter le script, assurez-vous que votre système répond aux exigences suivantes :
+
+- Système d'exploitation Linux (**testé sur Ubuntu, Debian, Fedora, Arch Linux et leurs dérivés**).
+- Accès à un compte utilisateur avec privilèges superutilisateur (`sudo`).
+- Connexion Internet stable pour télécharger et installer les outils.
+- Espace disque suffisant pour l'installation des programmes (min 100Go).
 
 ---
 
 ## **Installation**
+
+Suivez ces étapes simples pour installer et exécuter le script :
 
 1. Clonez ce dépôt sur votre machine locale :
 
@@ -67,61 +77,60 @@ Ce projet est idéal pour :
 
 3. Exécutez le script :
    ```bash
-   ./setup.sh
+      ./setup.sh
    ```
-
----
-
-## **Utilisation**
-
-Le script s'exécute automatiquement et effectue les actions suivantes :
-
-1. Vérifie si les outils sont déjà installés.
-2. Installe les outils manquants.
-3. Configure les permissions `NOPASSWD` pour l'utilisateur actuel (optionnel).
-
-Exemple d'exécution :
-
-```bash
-./setup.sh
-```
-
-Si vous souhaitez vérifier manuellement si un programme est installé, vous pouvez utiliser la fonction `is_installed` incluse dans le script :
-
-```bash
-is_installed "nmap"
-```
 
 ---
 
 ## **Liste des Programmes Installés**
 
-Le script installe et configure les outils populaires suivants pour la cybersécurité :
+Le script installe et configure une liste complète d'outils populaires pour la cybersécurité. Voici une classification par catégorie :
 
-### **Outils de Scan et Analyse**
+---
 
-- **Nmap :** Outil de scan réseau et de ports.
-- **Wireshark :** Analyseur de trafic réseau.
-- **Nikto :** Scanner de vulnérabilités web.
+### **Applications Cyber**
 
-### **Outils de Pénétration**
+- **Docker :** Plateforme de conteneurisation pour créer des environnements isolés.
+- **DVWA (Damn Vulnerable Web Application) :** Application web vulnérable conçue pour tester les vulnérabilités.
+- **Exegol :** Environnement virtuel préconfiguré pour les tests de pénétration.
+- **Add-ons pour Firefox :** Extensions de sécurité et de confidentialité pour le navigateur Firefox.
 
-- **Metasploit Framework :** Framework pour les tests de pénétration.
-- **Hydra :** Outil de force brute pour les attaques d'authentification.
-- **John the Ripper :** Cracker de mots de passe.
+---
 
-### **Outils de Confidentialité et Sécurité**
+### **Logiciels Cyber**
 
-- **Tor :** Navigateur pour une navigation anonyme.
-- **GPG :** Outil de chiffrement et de signature numérique.
-- **OpenVPN :** Client VPN pour des connexions sécurisées.
+- **Sublime Text / VSCode :** Éditeurs de texte puissants pour le développement et l'analyse de scripts.
+- **Nmap :** Outil de scan réseau et de ports pour découvrir les hôtes et services.
+- **Wireshark :** Analyseur de trafic réseau pour capturer et inspecter les paquets.
+- **Hydra :** Outil de force brute pour tester les mécanismes d'authentification.
+- **Burp Suite :** Suite complète pour l'analyse et l'exploitation des vulnérabilités web.
+- **SpiderFoot :** Outil automatisé pour la collecte d'informations et la reconnaissance.
+- **Nessus :** Scanner de vulnérabilités pour identifier les failles de sécurité.
+- **SQLMap :** Outil d'exploitation de vulnérabilités SQL pour tester les bases de données web.
+- **MySQL :** Système de gestion de base de données relationnelle pour tester les vulnérabilités SQL.
+- **Metasploit Framework :** Framework puissant pour les tests de pénétration et l'exploitation de vulnérabilités.
+- **DRADIS :** Outil de gestion de reporting pour les tests de pénétration.
+- **SYSREPTOR :** Outil de gestion des incidents et des rapports de sécurité.
+- **Setoolkit :** Social-Engineer Toolkit pour les attaques de phishing et d'ingénierie sociale.
+- **Footprinting :** Ensemble de techniques pour recueillir des informations sur une cible.
+- **theHarvester :** Outil de collecte d'informations pour identifier des e-mails, sous-domaines et autres détails.
+- **Reconftw :** Framework automatisé pour la reconnaissance et l'énumération de cibles.
+- **Spoofing :** Techniques pour simuler l'identité d'une cible dans le cadre d'attaques ou d'analyses.
+- **GParted :** Éditeur de partitions pour gérer les disques et systèmes de fichiers.
 
-### **Outils de Surveillance**
-
-- **Fail2Ban :** Protection contre les attaques de force brute.
-- **ClamAV :** Antivirus open source.
+---
 
 > **Note :** Vous pouvez personnaliser la liste des programmes en modifiant le fichier `setup.sh`.
+
+## **Personnalisation**
+
+Si vous souhaitez ajouter ou supprimer des outils, modifiez directement la section correspondante dans le fichier `setup.sh`. Par exemple :
+
+```bash
+tools=("nmap" "wireshark" "metasploit-framework" "hydra")
+```
+
+Ajoutez ou supprimez les noms des outils selon vos besoins.
 
 ---
 
