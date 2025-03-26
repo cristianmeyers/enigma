@@ -179,19 +179,26 @@ function install_program() {
 }
 
 function install_docker() {
-
     echo -e -n "\r[ .. ] Installation de Docker..."
 
     # Detectar el gestor de paquetes y realizar la instalación correspondiente
     if command -v apt-get &> /dev/null; then
+        # Instalar dependencias necesarias
         sudo apt-get update -y &> /dev/null
         sudo apt-get install -y ca-certificates curl gnupg &> /dev/null
-        sudo install -m 0755 -d /etc/apt/keyrings
-        sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc &> /dev/null
-        sudo chmod a+r /etc/apt/keyrings/docker.asc &> /dev/null
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+
+        # Agregar la clave GPG oficial de Docker
+        if ! sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg &> /dev/null; then
+            echo -e "\r[ $(color "NOK" "31") ] Échec de l'ajout de la clé GPG Docker."
+            return 1
+        fi
+
+        # Configurar el repositorio oficial de Docker
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
         $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
         sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+        # Actualizar los repositorios e instalar Docker
         sudo apt-get update -y &> /dev/null
         sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras &> /dev/null
 
@@ -268,6 +275,7 @@ function main() {
     install_program ca-certificates
     install_program curl
     install_docker
+    sudo apt autoremove
     
 }
 
