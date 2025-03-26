@@ -179,10 +179,6 @@ function install_program() {
 }
 
 function install_docker() {
-    if command -v docker &> /dev/null; then
-        echo "[$(color "Ok" "32")] Docker est déjà installé."
-        return 0
-    fi
 
     echo -e -n "\r[ .. ] Installation de Docker..."
 
@@ -264,9 +260,10 @@ function main() {
     
     passwd
     no_passwd
-
+    clear
     install_program ca-certificates
     install_program curl
+    install_docker
     
 }
 
