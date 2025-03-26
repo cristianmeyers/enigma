@@ -275,7 +275,7 @@ function main() {
     install_program ca-certificates
     install_program curl
     install_docker
-    sudo apt autoremove
+    sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
     
 }
 
