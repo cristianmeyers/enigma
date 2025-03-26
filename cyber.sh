@@ -116,27 +116,27 @@ function is_installed() {
     local program="$1"
 
     if command -v "$program" &> /dev/null; then
-        echo "[$(color "Ok" "32")] $(color "$program" "32" ) est installé (via PATH)"
+        echo "[ $(color "OK" "32") ] $(color "$program" "32" ) est installé (via $(color "PATH" "34"))"
         return 0
     fi
 
     if dpkg-query -W -f='${Status}' "$program" 2>/dev/null | grep -q "ok installed"; then
-        echo "[$(color "Ok" "32")] $(color "$program" "32" ) est installé (via dpkg)"
+        echo "[ $(color "OK" "32") ] $(color "$program" "32" ) est installé (via $(color  "dpkg" "34"))"
         return 0
     fi
 
     if snap list 2>/dev/null | grep -qw "$program"; then
-        echo "[$(color "Ok" "32")] $(color "$program" "32" ) est installé (via Snap)"
+        echo "[ $(color "OK" "32") ] $(color "$program" "32" ) est installé (via $(color "Snap" "34"))"
         return 0
     fi
 
     if flatpak list 2>/dev/null | grep -qw "$program"; then
-        echo "[$(color "Ok" "32")] $(color "$program" "32" ) est installé (via Flatpak)"
+        echo "[ $(color "OK" "32") ] $(color "$program" "32" ) est installé (via $(color "Flatpak" "34"))"
         return 0
     fi
 
     if find /home/$USER -name "*$program*.AppImage" -exec test -x {} \; -print -quit 2>/dev/null | grep -q .; then
-        echo "[$(color "Ok" "32")] $(color "$program" "32" ) est installé (via AppImage)"
+        echo "[ $(color "OK" "32") ] $(color "$program" "32" ) est installé (via $(color "AppImage" "34"))"
         return 0
     fi
 
@@ -144,36 +144,39 @@ function is_installed() {
 }
 
 function install_program() {
-    local program="$1"
+    local success=true
 
-    if is_installed "$program"; then
+    for program in "$@"; do
+        if is_installed "$program"; then
+            continue  
+        fi
+
+        echo -e -n "\r[ .. ] Installation de $program..."
+
+        if command -v apt-get &> /dev/null; then
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$program" &> /dev/null
+        elif command -v dnf &> /dev/null; then
+            sudo dnf install -y "$program" &> /dev/null
+        elif command -v yum &> /dev/null; then
+            sudo yum install -y "$program" &> /dev/null
+        elif command -v zypper &> /dev/null; then
+            sudo zypper --non-interactive install "$program" &> /dev/null
+        elif command -v pacman &> /dev/null; then
+            sudo pacman -S --noconfirm "$program" &> /dev/null
+        elif command -v microdnf &> /dev/null; then
+            sudo microdnf install "$program" -y &> /dev/null
+        else
+            echo -e "\r[ $(color "Error" "31") ] Gestionnaire de paquets inconnu ou non trouvé."
+            success=false
+            continue 
+        fi
+
+
+    done
+
+    if $success; then
         return 0
-    fi
-
-    echo -e -n "\r[ .. ] Installation de $program..."
-
-    if command -v apt-get &> /dev/null; then
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$program" &> /dev/null
-    elif command -v dnf &> /dev/null; then
-        sudo dnf install -y "$program" &> /dev/null
-    elif command -v yum &> /dev/null; then
-        sudo yum install -y "$program" &> /dev/null
-    elif command -v zypper &> /dev/null; then
-        sudo zypper --non-interactive install "$program" &> /dev/null
-    elif command -v pacman &> /dev/null; then
-        sudo pacman -S --noconfirm "$program" &> /dev/null
-    elif command -v microdnf &> /dev/null; then
-        sudo microdnf install "$program" -y &> /dev/null
     else
-        echo -e "\r[ ${colorRED}Error${noCOLOR} ] Gestionnaire de paquets inconnu ou non trouvé."
-        return 2
-    fi
-
-    if is_installed "$program"; then
-        echo -e "\r[ ${colorGREEN}OK${noCOLOR} ] $program installé avec succès."
-        return 0
-    else
-        echo -e "\r[ ${colorRED}Error${noCOLOR} ] Échec de l'installation de $program."
         return 1
     fi
 }
@@ -181,11 +184,10 @@ function install_program() {
 function install_docker() {
     echo -e -n "\r[ .. ] Installation de Docker..."
 
-    # Detectar el gestor de paquetes y realizar la instalación correspondiente
+
     if command -v apt-get &> /dev/null; then
-        # Instalar dependencias necesarias
-        sudo apt-get update -y &> /dev/null
-        sudo apt-get install -y ca-certificates curl &> /dev/null
+
+        updater
 
         # Crear el directorio para las claves GPG
         sudo install -m 0755 -d /etc/apt/keyrings &> /dev/null
@@ -234,7 +236,7 @@ echo 'Commande exécutée dans le contexte du groupe Docker.'
 exit
 EOF
     else
-        echo -e "\r[ $(color "ERREUR" "31") ] Échec de la configuration du groupe Docker."
+        echo -e "\r[ $(color "Error" "31") ] Échec de la configuration du groupe Docker."
         return 1
     fi
 
@@ -265,8 +267,10 @@ function main() {
     no_passwd
     clear
     install_docker
+    install_program ca-certificates 
+    install_program curl
     sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
     
 }
 
-main
+install_program curl docker docker-compose code chromium
