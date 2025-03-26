@@ -182,6 +182,7 @@ function install_docker() {
 
     echo -e -n "\r[ .. ] Installation de Docker..."
 
+    # Detectar el gestor de paquetes y realizar la instalación correspondiente
     if command -v apt-get &> /dev/null; then
         sudo apt-get update -y &> /dev/null
         sudo apt-get install -y ca-certificates curl gnupg &> /dev/null
@@ -219,6 +220,7 @@ function install_docker() {
         return 1
     fi
 
+    # Verificar si Docker está instalado
     if ! command -v docker &> /dev/null; then
         echo -e "\r[ $(color "NOK" "31") ] Échec de l'installation de Docker."
         return 1
@@ -226,15 +228,17 @@ function install_docker() {
 
     echo -e "\r[ $(color "OK" "32") ] Docker installé avec succès."
 
+    # Configurar el grupo Docker
     echo -e -n "\r[ .. ] Configuration du groupe Docker..."
     if sudo usermod -aG docker "$(whoami)" &> /dev/null; then
-        newgrp docker &> /dev/null
         echo -e "\r[ $(color "OK" "32") ] Groupe Docker configuré avec succès."
+        sg docker -c "echo 'Commande exécutée dans le contexte du groupe Docker.'"
     else
-        echo -e "\r[ $(color "NOK" "31") ] Échec de la configuration du groupe Docker."
+        echo -e "\r[ $(color "ERREUR" "31") ] Échec de la configuration du groupe Docker."
         return 1
     fi
 
+    # Verificar si Docker funciona sin sudo
     if docker info &> /dev/null; then
         echo -e "[ $(color "OK" "32") ] Docker fonctionne sans privilèges sudo."
     else
