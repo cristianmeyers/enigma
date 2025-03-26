@@ -165,7 +165,7 @@ function install_program() {
     elif command -v microdnf &> /dev/null; then
         sudo microdnf install "$program" -y &> /dev/null
     else
-        echo -e "\r[ ${colorRED}NOK${noCOLOR} ] Gestionnaire de paquets inconnu ou non trouvé."
+        echo -e "\r[ ${colorRED}Error${noCOLOR} ] Gestionnaire de paquets inconnu ou non trouvé."
         return 2
     fi
 
@@ -173,7 +173,7 @@ function install_program() {
         echo -e "\r[ ${colorGREEN}OK${noCOLOR} ] $program installé avec succès."
         return 0
     else
-        echo -e "\r[ ${colorRED}NOK${noCOLOR} ] Échec de l'installation de $program."
+        echo -e "\r[ ${colorRED}Error${noCOLOR} ] Échec de l'installation de $program."
         return 1
     fi
 }
@@ -185,16 +185,22 @@ function install_docker() {
     if command -v apt-get &> /dev/null; then
         # Instalar dependencias necesarias
         sudo apt-get update -y &> /dev/null
-        sudo apt-get install -y ca-certificates curl gnupg &> /dev/null
+        sudo apt-get install -y ca-certificates curl &> /dev/null
 
-        # Agregar la clave GPG oficial de Docker
-        if ! sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg &> /dev/null; then
-            echo -e "\r[ $(color "NOK" "31") ] Échec de l'ajout de la clé GPG Docker."
+        # Crear el directorio para las claves GPG
+        sudo install -m 0755 -d /etc/apt/keyrings &> /dev/null
+
+        # Descargar la clave GPG oficial de Docker
+        if ! sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc &> /dev/null; then
+            echo -e "\r[ $(color "Error" "31") ] Échec de l'ajout de la clé GPG Docker."
             return 1
         fi
 
+        # Ajustar permisos de la clave GPG
+        sudo chmod a+r /etc/apt/keyrings/docker.asc &> /dev/null
+
         # Configurar el repositorio oficial de Docker
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
         $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
         sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
@@ -202,34 +208,16 @@ function install_docker() {
         sudo apt-get update -y &> /dev/null
         sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras &> /dev/null
 
-    elif command -v dnf &> /dev/null; then
-        sudo dnf -y install dnf-plugins-core &> /dev/null
-        sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo &> /dev/null
-        sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin &> /dev/null
-
-    elif command -v yum &> /dev/null; then
-        sudo yum install -y yum-utils &> /dev/null
-        sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo &> /dev/null
-        sudo yum install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin &> /dev/null
-
-    elif command -v zypper &> /dev/null; then
-        sudo zypper refresh &> /dev/null
-        sudo zypper install -y docker &> /dev/null
-
-    elif command -v pacman &> /dev/null; then
-        sudo pacman -S --noconfirm docker &> /dev/null
-
-    elif command -v microdnf &> /dev/null; then
-        sudo microdnf install -y docker &> /dev/null
-
+        # Usar el script oficial de Docker como alternativa adicional
+        curl -fsSL "https://get.docker.com/" | sh &> /dev/null
     else
-        echo -e "\r[ $(color "NOK" "31") ] Gestionnaire de paquets inconnu ou non pris en charge."
+        echo -e "\r[ $(color "Error" "31") ] Gestionnaire de paquets inconnu ou non pris en charge."
         return 1
     fi
 
     # Verificar si Docker está instalado
     if ! command -v docker &> /dev/null; then
-        echo -e "\r[ $(color "NOK" "31") ] Échec de l'installation de Docker."
+        echo -e "\r[ $(color "Error" "31") ] Échec de l'installation de Docker."
         return 1
     fi
 
@@ -239,7 +227,12 @@ function install_docker() {
     echo -e -n "\r[ .. ] Configuration du groupe Docker..."
     if sudo usermod -aG docker "$(whoami)" &> /dev/null; then
         echo -e "\r[ $(color "OK" "32") ] Groupe Docker configuré avec succès."
-        sg docker -c "echo 'Commande exécutée dans le contexte du groupe Docker.'"
+
+        # Cambiar al grupo Docker usando newgrp y luego salir de la subshell
+        newgrp docker <<EOF
+echo 'Commande exécutée dans le contexte du groupe Docker.'
+exit
+EOF
     else
         echo -e "\r[ $(color "ERREUR" "31") ] Échec de la configuration du groupe Docker."
         return 1
@@ -249,12 +242,11 @@ function install_docker() {
     if docker info &> /dev/null; then
         echo -e "[ $(color "OK" "32") ] Docker fonctionne sans privilèges sudo."
     else
-        echo -e "[ $(color "NOK" "31") ] Docker nécessite encore sudo. Redémarrez votre session."
+        echo -e "[ $(color "Error" "31") ] Docker nécessite encore sudo. Redémarrez votre session."
     fi
 
     return 0
 }
-
 function main() {
     updater
 
@@ -272,8 +264,6 @@ function main() {
     passwd
     no_passwd
     clear
-    install_program ca-certificates
-    install_program curl
     install_docker
     sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
     
