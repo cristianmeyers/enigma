@@ -307,4 +307,4 @@ function main() {
     
 }
 
-get_distro
+main
