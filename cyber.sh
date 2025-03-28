@@ -113,7 +113,7 @@ function passwd() {
             export PASSWORD
             echo "[$(color "Ok" "32")] Mot de passe sauvegardé dans $PASSWORD_FILE."
         else
-            echo "$(color "[Error]" "31") Erreur d'authentification."
+            echo "[$(color "Error" "31")] Erreur d'authentification."
             exit 1
         fi
     fi
