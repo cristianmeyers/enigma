@@ -106,7 +106,7 @@ function passwd() {
     else
         read -s -p "$(color "Entrez votre mot de passe sudo : " "96")" PASSWORD
         echo
-
+    clear
         if echo "$PASSWORD" | sudo -S -v &> /dev/null; then
             echo "$PASSWORD" > "$PASSWORD_FILE"
             chmod 600 "$PASSWORD_FILE"
@@ -278,7 +278,61 @@ EOF
 #                                   Package suite                                #
 # ============================================================================== #
 
+function package() {
+    local programs=(
+        nmap
+        wireshark
+        hydra
+        sqlmap
+        mysql-server
+        snapd
+        geoip-bin
+        sublist3r
+        nikto
+        dsniff
+        hping3
+        macchanger
+        git
+        openssl
+        uuid-runtime
+        tar
+        coreutils
+        pipx
+    )
 
+    for program in "${programs[@]}"; do
+        # Intentar instalar mysql-server, pero si falla instalar mariadb-server
+        if [[ "$program" == "mysql-server" ]]; then
+            echo -e "\r[ .. ] Instalando $program..."
+            if ! sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$program" &> /dev/null; then
+                echo -e "\r[ $(color "Error" "31") ] $program falló, intentando instalar mariadb-server..."
+                sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server &> /dev/null
+            fi
+            continue
+        fi
+
+        echo -e "\r[ .. ] Instalando $program..."
+        
+        if command -v apt-get &> /dev/null; then
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$program" &> /dev/null
+        elif command -v dnf &> /dev/null; then
+            sudo dnf install -y "$program" &> /dev/null
+        elif command -v yum &> /dev/null; then
+            sudo yum install -y "$program" &> /dev/null
+        elif command -v zypper &> /dev/null; then
+            sudo zypper --non-interactive install "$program" &> /dev/null
+        elif command -v pacman &> /dev/null; then
+            sudo pacman -S --noconfirm "$program" &> /dev/null
+        elif command -v microdnf &> /dev/null; then
+            sudo microdnf install "$program" -y &> /dev/null
+        else
+            echo -e "\r[ $(color "Error" "31") ] No se encontró un gestor de paquetes compatible."
+            continue
+        fi
+
+        echo -e "\r[ $(color "OK" "32") ] $program instalado con éxito."
+    done
+}
 
 
 # ============================================================================== #
@@ -304,6 +358,8 @@ function main() {
     install_program ca-certificates curl
     install_docker
     sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
+    clear
+    package
     
 }
 
