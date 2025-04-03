@@ -37,6 +37,8 @@ function requirement() {
 }
 
 function updater() {
+    
+    echo -e "[ $(color "..." "32") ] Mise à jour du systeme..."
     function handle_error() {
         if [ $1 -eq 1 ]; then
             echo "$(color "Erreur:" "31") Echec de la mise à jour de la cache des packets." >&2
@@ -303,34 +305,9 @@ function package() {
     for program in "${programs[@]}"; do
         # Intentar instalar mysql-server, pero si falla instalar mariadb-server
         if [[ "$program" == "mysql-server" ]]; then
-            echo -e "\r[ .. ] Instalando $program..."
-            if ! sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$program" &> /dev/null; then
-                echo -e "\r[ $(color "Error" "31") ] $program falló, intentando instalar mariadb-server..."
-                sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server &> /dev/null
-            fi
+            install_program "$program"
             continue
         fi
-
-        echo -e "\r[ .. ] Instalando $program..."
-        
-        if command -v apt-get &> /dev/null; then
-            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$program" &> /dev/null
-        elif command -v dnf &> /dev/null; then
-            sudo dnf install -y "$program" &> /dev/null
-        elif command -v yum &> /dev/null; then
-            sudo yum install -y "$program" &> /dev/null
-        elif command -v zypper &> /dev/null; then
-            sudo zypper --non-interactive install "$program" &> /dev/null
-        elif command -v pacman &> /dev/null; then
-            sudo pacman -S --noconfirm "$program" &> /dev/null
-        elif command -v microdnf &> /dev/null; then
-            sudo microdnf install "$program" -y &> /dev/null
-        else
-            echo -e "\r[ $(color "Error" "31") ] No se encontró un gestor de paquetes compatible."
-            continue
-        fi
-
-        echo -e "\r[ $(color "OK" "32") ] $program instalado con éxito."
     done
 }
 
@@ -339,7 +316,6 @@ function package() {
 #                                   MAIN FUNCTION                                #
 # ============================================================================== #
 function main() {
-    updater
 
     if ! requirement; then
         messages "31" "Le script ne doit pas être exécuté en tant que root !"
@@ -353,7 +329,9 @@ function main() {
     fi
     
     passwd
+    clear
     no_passwd
+    updater
     clear
     install_program ca-certificates curl
     install_docker
