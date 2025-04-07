@@ -13,18 +13,40 @@ function color() {
 }
 
 function messages() {
+    local len
+    local padding
+
     if [ $# -eq 2 ]; then
-        echo -e "\e[$1m=======================================================================\e[0m"
-        echo -e "\e[$1m                                                                       \e[0m"
-        echo -e "\e[$1m                   $2                                                  \e[0m"
-        echo -e "\e[$1m                                                                       \e[0m"
-        echo -e "\e[$1m=======================================================================\e[0m"
+        len=${#2}
+        message="$2"
     elif [ $# -eq 3 ]; then
-        echo -e "\e[$1m=======================================================================\e[0m"
-        echo -e "\e[$1m                                                                       \e[0m"
-        echo -e "\e[$2m                   $3                                                  \e[0m"
-        echo -e "\e[$1m                                                                       \e[0m"
-        echo -e "\e[$1m=======================================================================\e[0m"
+        len=${#3}
+        message="$3"
+    fi
+
+    local cols=${COLUMNS:-$(tput cols)} 
+    padding=$(( (cols - len) / 2 ))
+
+    generate_padding() {
+        printf "%*s" "$1" ""
+    }
+
+    left_padding=$(generate_padding $padding)
+
+    if [ $# -eq 2 ]; then
+        echo
+        echo -e "$(generate_padding $(( (cols - 74) / 2 )))\e[$1m=======================================================================\e[0m"
+        echo
+        echo -e "${left_padding}\e[$1m${message}\e[0m"
+        echo
+        echo -e "$(generate_padding $(( (cols - 74) / 2 )))\e[$1m=======================================================================\e[0m"
+    elif [ $# -eq 3 ]; then
+        echo
+        echo -e "$(generate_padding $(( (cols - 74) / 2 )))\e[$1m=======================================================================\e[0m"
+        echo
+        echo -e "${left_padding}\e[$2m${message}\e[0m"
+        echo
+        echo -e "$(generate_padding $(( (cols - 74) / 2 )))\e[$1m=======================================================================\e[0m"
     fi
 }
 
@@ -172,6 +194,7 @@ function install_program() {
 
     for program in "$@"; do
         if ! is_installed "$program"; then
+            echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
             echo -ne "\r[ $(color "..." "32") ] Installation de $(color "$program" "32")..."
 
             if command -v apt-get &> /dev/null; then
@@ -194,9 +217,11 @@ function install_program() {
              fi
              #Once installed
             if [[ $? -eq 0 ]]; then
+                echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
                 echo -ne "\r[ $(color "OK" "32") ] $(color "$program" "32") installé avec succès."
                 echo
             else
+                echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
                 echo -ne "\r[ $(color "Error" "31") ] Échec de l'installation de $(color "$program" "36")."
                 success=false
                 echo
@@ -288,7 +313,8 @@ EOF
 # ============================================================================== #
 
 function package() {
-    messages "33" "32" "Installation de la suite cyber $(echo -ne $(color "Enigma" "94"))"
+    messages "46" "46" "Installation de la suite cyber $(echo -ne $(color "Enigma" "30"))"
+    echo;echo
     local programs=(
         nmap
         wireshark
@@ -320,7 +346,7 @@ function package() {
 #                                   MAIN FUNCTION                                #
 # ============================================================================== #
 function main() {
-
+    clear
     if ! requirement; then
         messages "31" "Le script ne doit pas être exécuté en tant que root !"
         return 1
@@ -333,7 +359,6 @@ function main() {
     fi
     
     passwd
-    clear
     no_passwd
     updater
     clear
@@ -345,4 +370,4 @@ function main() {
     
 }
 
-# install_program "git" "cowsay" "firefox"
+main
