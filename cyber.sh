@@ -106,7 +106,7 @@ function passwd() {
     if [ -f "$PASSWORD_FILE" ]; then
         export PASSWORD=$(cat "$PASSWORD_FILE")
     else
-        read -s -p "$(color "Entrez votre mot de passe sudo : " "96")" PASSWORD
+        read -s -p "$(color "Entrez votre mot de passe sudo : " "32")" PASSWORD
         echo
     clear
         if echo "$PASSWORD" | sudo -S -v &> /dev/null; then
@@ -303,10 +303,8 @@ function package() {
     )
 
     for program in "${programs[@]}"; do
-        # Intentar instalar mysql-server, pero si falla instalar mariadb-server
-        if [[ "$program" == "mysql-server" ]]; then
+        if [[ ! $(is_installed "$program") ]]; then
             install_program "$program"
-            continue
         fi
     done
 }
