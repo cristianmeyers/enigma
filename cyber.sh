@@ -22,6 +22,9 @@ function messages() {
     elif [ $# -eq 3 ]; then
         len=${#3}
         message="$3"
+    elif [ $# -eq 4 ]; then
+        len=${#3}
+        message="$3"
     fi
 
     local cols=${COLUMNS:-$(tput cols)} 
@@ -47,6 +50,15 @@ function messages() {
         echo -e "${left_padding}\e[$2m${message}\e[0m"
         echo
         echo -e "$(generate_padding $(( (cols - 74) / 2 )))\e[$1m=======================================================================\e[0m"
+    elif [[ $# -eq 4 && $4 -eq "left" ]]; then
+        padding=$(( (74 - len) / 2 ))
+        left_padding=$(generate_padding $padding)
+        echo
+        echo -e "\e[$1m=======================================================================\e[0m"
+        echo
+        echo -e "${left_padding}\e[$2m${message}\e[0m"
+        echo
+        echo -e "\e[$1m=======================================================================\e[0m"
     fi
 }
 
@@ -120,6 +132,22 @@ function get_distro() {
     fi
 
     echo "Distro: $(color "$distro" "36"), Package Manager: $(color "$package_manager" "32")"
+}
+function finished() {
+    echo
+    color '
+
+         _______ .__   __.  __    _______ .___  ___.      ___      
+        |   ____||  \ |  | |  |  /  _____||   \/   |     /   \     
+        |  |__   |   \|  | |  | |  |  __  |  \  /  |    /  ^  \    
+        |   __|  |  . `  | |  | |  | |_ | |  |\/|  |   /  /_\  \   
+        |  |____ |  |\   | |  | |  |__| | |  |  |  |  /  _____  \  
+        |_______||__| \__| |__|  \______| |__|  |__| /__/     \__\ 
+                                                                
+
+    ' "36"
+    messages "46" "36" "Installation Complète : $(echo -ne $(color "v1.0" "32"))" "left"
+    echo
 }
 
 function passwd() {
@@ -346,7 +374,6 @@ function package() {
 #                                   MAIN FUNCTION                                #
 # ============================================================================== #
 function main() {
-    clear
     if ! requirement; then
         messages "31" "Le script ne doit pas être exécuté en tant que root !"
         return 1
@@ -367,6 +394,8 @@ function main() {
     sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
     clear
     package
+
+    finished
     
 }
 

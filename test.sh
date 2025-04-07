@@ -15,8 +15,27 @@ function eraseLastMessage() {
     echo -e "\rMise a jour reussi"
 }
 
+# basic message :
 function messages() {
-    # Calculamos la longitud del texto y el espacio para centrarlo
+    if [ $# -eq 2 ]; then
+        echo -e "\e[$1m=======================================================================\e[0m"
+        echo -e "\e[$1m                                                                       \e[0m"
+        echo -e "\e[$1m                   $2                                                  \e[0m"
+        echo -e "\e[$1m                                                                       \e[0m"
+        echo -e "\e[$1m=======================================================================\e[0m"
+    elif [ $# -eq 3 ]; then
+        echo -e "\e[$1m=======================================================================\e[0m"
+        echo -e "\e[$1m                                                                       \e[0m"
+        echo -e "\e[$2m                   $3                                                  \e[0m"
+        echo -e "\e[$1m                                                                       \e[0m"
+        echo -e "\e[$1m=======================================================================\e[0m"
+    fi
+}
+
+
+# advanced message :
+
+function messages() {
     local len
     local padding
 
@@ -28,15 +47,14 @@ function messages() {
         message="$3"
     fi
 
-    local cols=${COLUMNS:-$(tput cols)}  # Ancho de la terminal
-    padding=$(( (cols - len) / 2 ))      # Espacio necesario para centrar
+    local cols=${COLUMNS:-$(tput cols)} 
+    padding=$(( (cols - len) / 2 ))
 
-    # Función para generar espacios en blanco
     generate_padding() {
         printf "%*s" "$1" ""
     }
 
-    # Crear el espacio en blanco para centrar el mensaje
+
     left_padding=$(generate_padding $padding)
 
     if [ $# -eq 2 ]; then
@@ -58,4 +76,15 @@ function messages() {
 
 
 
-messages 32 "Mise a jour du systeme"
+echo  '
+
+ _______ .__   __.  __    _______ .___  ___.      ___      
+|   ____||  \ |  | |  |  /  _____||   \/   |     /   \     
+|  |__   |   \|  | |  | |  |  __  |  \  /  |    /  ^  \    
+|   __|  |  . `  | |  | |  | |_ | |  |\/|  |   /  /_\  \   
+|  |____ |  |\   | |  | |  |__| | |  |  |  |  /  _____  \  
+|_______||__| \__| |__|  \______| |__|  |__| /__/     \__\ 
+                                                           
+
+
+'
