@@ -113,9 +113,9 @@ function passwd() {
             echo "$PASSWORD" > "$PASSWORD_FILE"
             chmod 600 "$PASSWORD_FILE"
             export PASSWORD
-            echo "[$(color "Ok" "32")] Mot de passe sauvegardé dans $PASSWORD_FILE."
+            echo "[ $(color "OK" "32") ] Mot de passe sauvegardé dans $PASSWORD_FILE."
         else
-            echo "[$(color "Error" "31")] Erreur d'authentification."
+            echo "[ $(color "Error" "31") ] Erreur d'authentification."
             exit 1
         fi
     fi
@@ -125,13 +125,13 @@ function no_passwd() {
     local USER=$(whoami)
 
     if printf "%s\n" "$PASSWORD" | sudo -S cat /etc/sudoers | grep -q "^$USER.*ALL=(ALL).*NOPASSWD: ALL"; then
-        echo "[$(color "Ok" "32")] $USER possède déjà les privilèges sudo sans mot de passe."
+        echo "[ $(color "OK" "32") ] $USER possède déjà les privilèges sudo sans mot de passe."
     else
         printf "%s\n" "$PASSWORD" | sudo -S bash -c "echo '$USER ALL=(ALL) NOPASSWD: ALL' | tee -a /etc/sudoers > /dev/null"
         if [ $? -eq 0 ]; then
-            echo "[$(color "Ok" "32")] L'utilisateur $(color "$USER" "32") n'a plus besoin d'utiliser le mot de passe."
+            echo "[ $(color "OK" "32") ] L'utilisateur $(color "$USER" "32") n'a plus besoin d'utiliser le mot de passe."
         else
-            echo "$(color "[Error]" "31") Modification Visudo échouée."
+            echo "[ $(color "Error" "31") ] Modification Visudo échouée."
         fi
     fi
 }
@@ -171,31 +171,40 @@ function install_program() {
     local success=true
 
     for program in "$@"; do
-        if is_installed "$program"; then
+        if ! is_installed "$program"; then
+            echo -ne "\r[ $(color "..." "32") ] Installation de $(color "$program" "32")..."
+
+            if command -v apt-get &> /dev/null; then
+                sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$program" &> /dev/null
+            elif command -v dnf &> /dev/null; then
+                sudo dnf install -y "$program" &> /dev/null
+            elif command -v yum &> /dev/null; then
+                sudo yum install -y "$program" &> /dev/null
+            elif command -v zypper &> /dev/null; then
+                sudo zypper --non-interactive install "$program" &> /dev/null
+            elif command -v pacman &> /dev/null; then
+                sudo pacman -S --noconfirm "$program" &> /dev/null
+            elif command -v microdnf &> /dev/null; then
+                sudo microdnf install "$program" -y &> /dev/null
+            else
+                echo -e "\r[ $(color "Error" "31") ] Gestionnaire de paquets n'a pas trouvé $(color "$program" "36")."
+                echo
+                success=false
+                continue 
+             fi
+             #Once installed
+            if [[ $? -eq 0 ]]; then
+                echo -ne "\r[ $(color "OK" "32") ] $(color "$program" "32") installé avec succès."
+                echo
+            else
+                echo -ne "\r[ $(color "Error" "31") ] Échec de l'installation de $(color "$program" "36")."
+                success=false
+                echo
+                continue
+            fi
+        else
             continue  
         fi
-
-        echo -e -n "\r[ .. ] Installation de $program..."
-
-        if command -v apt-get &> /dev/null; then
-            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$program" &> /dev/null
-        elif command -v dnf &> /dev/null; then
-            sudo dnf install -y "$program" &> /dev/null
-        elif command -v yum &> /dev/null; then
-            sudo yum install -y "$program" &> /dev/null
-        elif command -v zypper &> /dev/null; then
-            sudo zypper --non-interactive install "$program" &> /dev/null
-        elif command -v pacman &> /dev/null; then
-            sudo pacman -S --noconfirm "$program" &> /dev/null
-        elif command -v microdnf &> /dev/null; then
-            sudo microdnf install "$program" -y &> /dev/null
-        else
-            echo -e "\r[ $(color "Error" "31") ] Gestionnaire de paquets inconnu ou non trouvé."
-            success=false
-            continue 
-        fi
-
-
     done
 
     if $success; then
@@ -210,8 +219,6 @@ function install_docker() {
 
 
     if command -v apt-get &> /dev/null; then
-
-        updater
 
         # Crear el directorio para las claves GPG
         sudo install -m 0755 -d /etc/apt/keyrings &> /dev/null
@@ -281,6 +288,7 @@ EOF
 # ============================================================================== #
 
 function package() {
+    messages "33" "32" "Installation de la suite cyber $(echo -ne $(color "Enigma" "94"))"
     local programs=(
         nmap
         wireshark
@@ -303,9 +311,7 @@ function package() {
     )
 
     for program in "${programs[@]}"; do
-        if [[ ! $(is_installed "$program") ]]; then
-            install_program "$program"
-        fi
+        install_program "$program"
     done
 }
 
@@ -318,10 +324,10 @@ function main() {
     if ! requirement; then
         messages "31" "Le script ne doit pas être exécuté en tant que root !"
         return 1
-    elif ! is_installed "sudo"; then
+    elif ! is_installed "sudo" &> /dev/null; then
         messages "31" "Dépendance manquante : sudo"
         return 1
-    elif ! is_installed "tee"; then
+    elif ! is_installed "tee" &> /dev/null; then
         messages "31" "Dépendance manquante : tee"
         return 1
     fi
@@ -339,4 +345,4 @@ function main() {
     
 }
 
-main
+# install_program "git" "cowsay" "firefox"
