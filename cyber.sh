@@ -338,77 +338,6 @@ EOF
 #                                  Functions des SIO                             #
 # ============================================================================== #
 
-function install_spiderfoot() {
-    local program="spiderfoot"
-    local install_dir="$HOME/tools/spiderfoot"
-    local github_url="https://github.com/smicallef/spiderfoot.git"
-
-    echo -ne "\r[ $(color "..." "32") ] Vérification de $(color "$program" "32")..."
-
-    # Vérifier si SpiderFoot est déjà installé
-    if [ -d "$install_dir" ] && [ -f "$install_dir/sf.py" ]; then
-        echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-        echo -ne "\r[ $(color "OK" "32") ] $(color "$program" "32") est déjà installé dans $install_dir"
-        echo
-        return 0
-    fi
-
-    # Installer les dépendances
-    echo -ne "\r[ $(color "..." "32") ] Installation des dépendances pour $(color "$program" "32")..."
-    install_program python3 python3-pip python3-venv
-
-    if [ $? -ne 0 ]; then
-        echo -ne "\r[ $(color "Error" "31") ] Échec de l'installation des dépendances"
-        return 1
-    fi
-    if ! is_installed "git" &> /dev/null; then
-        install_program git
-    fi
-
-    # Cloner le dépôt
-    echo -ne "\r[ $(color "..." "32") ] Clonage du dépôt $(color "$program" "32")..."
-    mkdir -p "$install_dir"
-    if ! git clone "$github_url" "$install_dir" &> /dev/null; then
-        echo -ne "\r[ $(color "Error" "31") ] Échec du clonage de $(color "$program" "36")"
-        return 1
-    fi
-
-    # Configurer l'environnement virtuel
-    echo -ne "\r[ $(color "..." "32") ] Configuration de l'environnement Python..."
-    if ! python3 -m venv "$install_dir/venv"; then
-        echo -ne "\r[ $(color "Error" "31") ] Échec de la création de l'environnement virtuel"
-        return 1
-    fi
-
-    # Installer les requirements
-    echo -ne "\r[ $(color "..." "32") ] Installation des dépendances Python..."
-    source "$install_dir/venv/bin/activate"
-    if ! pip install -r "$install_dir/requirements.txt" &> /dev/null; then
-        echo -ne "\r[ $(color "Error" "31") ] Échec de l'installation des dépendances Python"
-        deactivate
-        return 1
-    fi
-    deactivate
-
-    # Créer un lanceur
-    echo -ne "\r[ $(color "..." "32") ] Création du lanceur..."
-    cat > "$HOME/.local/bin/spiderfoot" <<EOF
-#!/bin/bash
-source $install_dir/venv/bin/activate
-python3 $install_dir/sf.py \$@
-deactivate
-EOF
-    chmod +x "$HOME/.local/bin/spiderfoot"
-
-    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -ne "\r[ $(color "OK" "32") ] $(color "$program" "32") installé avec succès dans $install_dir"
-    echo
-    echo -e "  Lancez avec: $(color "spiderfoot -l 127.0.0.1:5000" "36")"
-    return 0
-}
-
-
-
 
 # ============================================================================== #
 #                                   Package suite                                #
@@ -468,7 +397,6 @@ function main() {
     sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
     clear
     package
-    install_spiderfoot
     finished
     
 }
