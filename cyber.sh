@@ -11,6 +11,19 @@ function color() {
     local color_code="$2"
     echo -e "\e[${color_code}m${text}\e[0m"
 }
+function spinner() {
+    local spinners=("/" "-" "\\" "|")
+    local delay=0.1  
+    local pid=$1 
+    local message=$2    
+    while kill -0 "$pid" &> /dev/null; do
+        for char in "${spinners[@]}"; do
+            echo -ne "\r[ $(color "$char" "32") ] $2"
+            sleep "$delay"
+        done
+    done
+    echo -e "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+}
 
 function messages() {
     local len
@@ -79,40 +92,52 @@ function requirement() {
 }
 
 function updater() {
-    
-    echo -e "[ $(color "..." "32") ] Mise à jour du systeme..."
     function handle_error() {
-        if [ $1 -eq 1 ]; then
-            echo "$(color "Erreur:" "31") Echec de la mise à jour de la cache des packets." >&2
-        elif [ $1 -eq 2 ]; then
-            echo "$(color "Erreur:" "31") Echec de la mise à jour des packets." >&2
-        elif [ $1 -eq 3 ]; then
-            echo "$(color "Erreur:" "31") Gestionnaire de packets introuvable" >&2
-        else
-            echo "$(color "Erreur:" "31") $2" >&2
-        fi
+        local code="$1"
+        local message="$2"
+        case "$code" in
+            1)
+                echo -e "\r[ $(color "Error" "31") ] Échec de la mise à jour de la cache des paquets."
+                ;;
+            2)
+                echo -e "\r[ $(color "Error" "31") ] Échec de la mise à jour des paquets."
+                ;;
+            3)
+                echo -e "\r[ $(color "Error" "31") ] Gestionnaire de paquets introuvable."
+                ;;
+            *)
+                echo -e "\r[ $(color "Error" "31") ] $message"
+                ;;
+        esac
         exit 1
     }
 
+    function handle_success() {
+        echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+        echo -e "\r[ $(color "OK" "32") ] $(color "$1" "32")"
+    }
+
+    # Verificar si el gestor de paquetes existe
     if command -v apt-get &> /dev/null; then
-        sudo DEBIAN_FRONTEND=noninteractive apt-get update &> /dev/null || handle_error 1
-        sudo DEBIAN_FRONTEND=noninteractive apt-get -yq full-upgrade &> /dev/null || handle_error 2
+        sudo DEBIAN_FRONTEND=noninteractive apt-get update &> /dev/null || handle_error 1 "Échec de la mise à jour de la cache des paquets."
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -yq full-upgrade &> /dev/null || handle_error 2 "Échec de la mise à jour des paquets."
     elif command -v dnf &> /dev/null; then
-        sudo dnf makecache --quiet || handle_error 1
-        sudo dnf -y upgrade || handle_error 2
+        sudo dnf makecache --quiet || handle_error 1 "Échec de la mise à jour de la cache des paquets."
+        sudo dnf -y upgrade || handle_error 2 "Échec de la mise à jour des paquets."
     elif command -v yum &> /dev/null; then
-        sudo yum makecache fast --quiet || handle_error 1
-        sudo yum -y update || handle_error 2
+        sudo yum makecache fast --quiet || handle_error 1 "Échec de la mise à jour de la cache des paquets."
+        sudo yum -y update || handle_error 2 "Échec de la mise à jour des paquets."
     elif command -v zypper &> /dev/null; then
-        sudo zypper --non-interactive refresh || handle_error 1
-        sudo zypper --non-interactive update || handle_error 2
+        sudo zypper --non-interactive refresh || handle_error 1 "Échec de la mise à jour de la cache des paquets."
+        sudo zypper --non-interactive update || handle_error 2 "Échec de la mise à jour des paquets."
     elif command -v pacman &> /dev/null; then
-        sudo pacman -Syu --noconfirm || handle_error 2
+        sudo pacman -Syu --noconfirm || handle_error 2 "Échec de la mise à jour des paquets."
     elif command -v microdnf &> /dev/null; then
-        sudo microdnf update -y || handle_error 2
+        sudo microdnf update -y || handle_error 2 "Échec de la mise à jour des paquets."
     else
-        handle_error 3
+        handle_error 3 "Gestionnaire de paquets introuvable."
     fi
+    handle_success "Mise à jour du système terminée."
 }
 
 function get_distro() {
@@ -433,10 +458,11 @@ function main() {
         messages "31" "Dépendance manquante : tee"
         return 1
     fi
-    
     passwd
     no_passwd
-    updater
+    updater &
+    updater_pid=$!
+    spinner "$updater_pid" "Mise a jour du systeme..."
     clear
     install_program ca-certificates curl
     install_docker
@@ -446,3 +472,4 @@ function main() {
     finished
     
 }
+main

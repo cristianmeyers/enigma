@@ -86,3 +86,52 @@ echo  '
 
 
 '
+
+
+
+colorGREEN='\033[32m'
+colorRED='\033[31m'
+noCOLOR='\033[0m'
+
+# Función para mostrar el spinner
+function spinner() {
+    local spinners=("/" "-" "\\" "|")
+    local delay=0.1  # Tiempo entre cada fotograma del spinner
+    local pid=$1     # ID del proceso que queremos monitorear
+
+    # Mostrar el spinner mientras el proceso esté en ejecución
+    while kill -0 "$pid" &> /dev/null; do
+        for char in "${spinners[@]}"; do
+            echo -ne "\r[$char] Cargando..."
+            sleep "$delay"
+        done
+    done
+
+    # Limpiar el spinner al finalizar
+    echo -ne "\r                         \r"
+}
+
+# Simular una tarea larga en segundo plano
+long_task() {
+    sleep 5  # Simulación de una tarea que tarda 5 segundos
+    return 0 # Retornar éxito
+}
+
+# Ejecutar la tarea larga en segundo plano
+function task() {
+    sudo DEBIAN_FRONTEND=noninteractive apt-get update &> /dev/null
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -yq full-upgrade &> /dev/null
+}
+task &
+task_pid=$!  # Obtener el PID del proceso en segundo plano
+
+# Mostrar el spinner mientras la tarea está en ejecución
+spinner "$task_pid"
+
+# Verificar el estado de la tarea
+if wait "$task_pid"; then
+    echo -e "\r[ ${colorGREEN}OK${noCOLOR} ] Updated!"
+else
+    echo -e "\r[ ${colorRED}NOK${noCOLOR} ] ${colorRED}Failed to login into sudo !${noCOLOR}"
+    exit 1
+fi
