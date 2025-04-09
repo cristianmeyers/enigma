@@ -92,7 +92,7 @@ function requirement() {
     fi
 }
 check_dependencies() {
-    local dependencies=("sudo" "tee" "curl")
+    local dependencies=("sudo" "tee")
     for dep in "${dependencies[@]}"; do
         if ! is_installed "$dep" &> /dev/null; then
             messages "31" "Dépendance manquante : $(color "$dep" "33")"
@@ -452,11 +452,16 @@ function main() {
         return 1
 
     fi
+    passwd
+    no_passwd
+    updater &
+    updater_pid=$!
+    spinner "$updater_pid" "Mise a jour du systeme..."
+    clear
     install_program ca-certificates curl
     if ! check_dependencies; then
         return 1
     fi
-
 
     SCRIPT_DIR=$(dirname "$(realpath "$0")")
     copyScript="$HOME/subshell.sh"
@@ -465,12 +470,7 @@ function main() {
     chmod +x "$copyScript"
 
 
-    passwd
-    no_passwd
-    updater &
-    updater_pid=$!
-    spinner "$updater_pid" "Mise a jour du systeme..."
-    clear
+
     # ================================== #
     #   Installation de Docker           #
 
