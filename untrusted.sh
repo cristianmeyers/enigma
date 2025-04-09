@@ -12,7 +12,7 @@ function color() {
     echo -e "\e[${color_code}m${text}\e[0m"
 }
 function spinner() {
-    local spinners=("/" "-" "\\" "|")
+    local spinners=("/" "-" '\\' "|")
     local delay=0.1  
     local pid=$1 
     local message=$2    
@@ -499,5 +499,10 @@ EOF
     finished
     
 }
-main
+function test(){
+    sleep 10
+}
+test &
+test_pid=$!
+spinner "$test_pid" "Test en cours..."
 

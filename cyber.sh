@@ -12,7 +12,7 @@ function color() {
     echo -e "\e[${color_code}m${text}\e[0m"
 }
 function spinner() {
-    local spinners=("/" "-" "\\" "|")
+    local spinners=("/" "-" '\\' "|")
     local delay=0.1  
     local pid=$1 
     local message=$2    
@@ -321,25 +321,30 @@ function install_program() {
 }
 
 function install_docker() {
-    echo -e -n "\r[ .. ] Installation de Docker..."
-    sudo DEBIAN_FRONTEND=noninteractive apt remove -y --purge docker docker-engine docker.io containerd runc &> /dev/null
-    sudo apt autoremove &> /dev/null
+    # echo -e -n "\r[ .. ] Installation de Docker..."
+
+    sudo  apt remove -y --purge docker docker-engine docker.io containerd runc
+    sudo apt autoremove -y
     sudo rm -rf /etc/apt/sources.list.d/docker.list
     sudo rm -rf /etc/apt/keyrings/docker.asc
 
     if command -v apt-get &> /dev/null; then
 
         # Crear el directorio para las claves GPG
-        sudo install -m 0755 -d /etc/apt/keyrings &> /dev/null
+        sudo install -m 0755 -d /etc/apt/keyrings
 
         # Descargar la clave GPG oficial de Docker
-        if ! sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc &> /dev/null; then
+        if ! sudo curl --max-time 10 -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc ; then
             echo -e "\r[ $(color "Error" "31") ] Échec de l'ajout de la clé GPG Docker."
             return 1
         fi
+        if [ ! -f /etc/apt/keyrings/docker.asc ]; then
+            echo -e "\r[ $(color "Error" "31") ] La clé GPG Docker n'a pas été téléchargée."
+            return 1
+         fi
 
         # Ajustar permisos de la clave GPG
-        sudo chmod a+r /etc/apt/keyrings/docker.asc &> /dev/null
+        sudo chmod a+r /etc/apt/keyrings/docker.asc 
 
         # Configurar el repositorio oficial de Docker
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
@@ -347,11 +352,11 @@ function install_docker() {
         sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
         # Actualizar los repositorios e instalar Docker
-        sudo apt-get update -y &> /dev/null
-        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras &> /dev/null
+        sudo apt-get update -y 
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras 
 
         # Usar el script oficial de Docker como alternativa adicional
-        curl -fsSL "https://get.docker.com/" | sh &> /dev/null
+        curl -fsSL "https://get.docker.com/" | sh
     else
         echo -e "\r[ $(color "Error" "31") ] Gestionnaire de paquets inconnu ou non pris en charge."
         return 1
@@ -474,7 +479,10 @@ function main() {
     # ================================== #
     #   Installation de Docker           #
 
-    install_docker 
+    install_docker &
+    install_docker_pid=$!
+    spinner "$install_docker_pid" "Installation de Docker..."
+    clear
     newgrp docker <<EOF
 source $HOME/subshell.sh
 if docker info &> /dev/null; then
