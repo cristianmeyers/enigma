@@ -95,7 +95,7 @@ check_dependencies() {
     local dependencies=("sudo" "tee" "curl")
     for dep in "${dependencies[@]}"; do
         if ! is_installed "$dep" &> /dev/null; then
-            messages "31" "Dépendance manquante : $dep"
+            messages "31" "Dépendance manquante : $(color "$dep" "33")"
             return 1
         fi
     done
@@ -452,6 +452,7 @@ function main() {
         return 1
 
     fi
+    install_program ca-certificates curl
     if ! check_dependencies; then
         return 1
     fi
@@ -470,8 +471,6 @@ function main() {
     updater_pid=$!
     spinner "$updater_pid" "Mise a jour du systeme..."
     clear
-    install_program ca-certificates curl
-    
     # ================================== #
     #   Installation de Docker           #
 
