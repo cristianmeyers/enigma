@@ -74,10 +74,7 @@ function messages() {
     fi
 }
 
-
-
-function message_end(){
-    echo  '
+echo  '
 
  _______ .__   __.  __    _______ .___  ___.      ___      
 |   ____||  \ |  | |  |  /  _____||   \/   |     /   \     
@@ -89,7 +86,3 @@ function message_end(){
 
 
 '
-}
-
-# ========================= testant la fonction de raph =========================
-

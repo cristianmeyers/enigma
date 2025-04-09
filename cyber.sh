@@ -61,6 +61,14 @@ function messages() {
         echo -e "\e[$1m=======================================================================\e[0m"
     fi
 }
+function errorMaker() {
+    local error_message="$1"
+
+    if [ $? -ne 0 ]; then
+        echo -e "\r[ $(color "Error" "31") ] $error_message"
+        exit 1
+    fi
+}
 
 function requirement() {
     if [ "$(id -u)" != 0 ]; then
@@ -215,6 +223,16 @@ function is_installed() {
     fi
 
     return 1
+}
+function is_installedByDocker() {
+    local program="$1"
+    if docker ps -a --format "{{.Names}}" | grep -wq "$program" &> /dev/null; then
+        echo -e "[ $(color "OK" "32") ] $(color "$program" "32") est installé (via $(color "Docker" "34"))"
+        return 0
+        
+    else
+        return 1
+    fi
 }
 
 function install_program() {
@@ -371,7 +389,35 @@ function package() {
         install_program "$program"
     done
 }
+function packageByDocker(){
+    # spiderfoot
+    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "spiderfoot" "32") via Docker..."
+    if ! [ -d "$HOME/spiderfoot" ];then
+        git clone https://github.com/smicallef/spiderfoot.git "$HOME/spiderfoot" &> /dev/null
+        errorMaker "Impossible de cloner le dépôt Spiderfoot"
+    fi
+    if ! is_installedByDocker "spiderfoot"; then
+        cd "$HOME/spiderfoot" && docker compose up -d > /dev/null 2>&1
+        errorMaker "Impossible de lancer le conteneur Spiderfoot"
+    fi
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+    echo -e "\r[ $(color "OK" "32") ] $(color "spiderfoot" "32") installé avec succès via Docker."
 
+    # DVWA
+    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "DVWA" "32") via Docker..."
+    if ! [ -d "$HOME/DVWA" ];then
+        git clone https://github.com/digininja/DVWA.git "$HOME/DVWA" &> /dev/null
+        errorMaker "Impossible de cloner le dépôt DVWA"
+    fi
+    if ! is_installedByDocker "dvwa-dvwa-1"; then
+        cd "$HOME/DVWA" && docker compose up -d > /dev/null 2>&1
+        errorMaker "Impossible de lancer le conteneur DVWA"
+    fi
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+    echo -e "\r[ $(color "OK" "32") ] $(color "DVWA" "32") installé avec succès via Docker."
+
+    
+}
 
 # ============================================================================== #
 #                                   MAIN FUNCTION                                #
@@ -400,5 +446,3 @@ function main() {
     finished
     
 }
-
-main
