@@ -321,63 +321,77 @@ function install_program() {
 }
 
 function install_docker() {
-    # echo -e -n "\r[ .. ] Installation de Docker..."
+    echo -e -n "\r[ .. ] Installation de Docker..."
 
-    sudo  apt remove -y --purge docker docker-engine docker.io containerd runc
-    sudo apt autoremove -y
+    # Eliminar versiones previas
+    sudo apt remove -y --purge docker docker-engine docker.io containerd runc || true
+    sudo apt autoremove -y || true
     sudo rm -rf /etc/apt/sources.list.d/docker.list
     sudo rm -rf /etc/apt/keyrings/docker.asc
 
-    if command -v apt-get &> /dev/null; then
+    # Crear directorio para claves GPG
+    sudo install -m 0755 -d /etc/apt/keyrings
 
-        # Crear el directorio para las claves GPG
-        sudo install -m 0755 -d /etc/apt/keyrings
+    # Descargar clave GPG
+    if ! sudo curl --max-time 20 -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc; then
+        echo -e "\r[ $(color "Error" "31") ] Échec de l'ajout de la clé GPG Docker."
+        return 1
+    fi
+    if [ ! -f /etc/apt/keyrings/docker.asc ]; then
+        echo -e "\r[ $(color "Error" "31") ] La clé GPG Docker n'a pas été téléchargée."
+        return 1
+    fi
+    sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-        # Descargar la clave GPG oficial de Docker
-        if ! sudo curl --max-time 10 -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc ; then
-            echo -e "\r[ $(color "Error" "31") ] Échec de l'ajout de la clé GPG Docker."
+    # Configurar repositorio
+    if [ -f /etc/os-release ]; then
+        source /etc/os-release
+        CODENAME="${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+        if [ -z "$CODENAME" ]; then
+            echo -e "\r[ $(color "Error" "31") ] Impossible de déterminer le nom de la distribution."
             return 1
         fi
-        if [ ! -f /etc/apt/keyrings/docker.asc ]; then
-            echo -e "\r[ $(color "Error" "31") ] La clé GPG Docker n'a pas été téléchargée."
-            return 1
-         fi
-
-        # Ajustar permisos de la clave GPG
-        sudo chmod a+r /etc/apt/keyrings/docker.asc 
-
-        # Configurar el repositorio oficial de Docker
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-        $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
-        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-        # Actualizar los repositorios e instalar Docker
-        sudo apt-get update -y 
-        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras 
-
-        # Usar el script oficial de Docker como alternativa adicional
-        curl -fsSL "https://get.docker.com/" | sh
     else
-        echo -e "\r[ $(color "Error" "31") ] Gestionnaire de paquets inconnu ou non pris en charge."
+        echo -e "\r[ $(color "Error" "31") ] Fichier /etc/os-release introuvable."
         return 1
     fi
 
-    # Verificar si Docker está instalado
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $CODENAME stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    # Actualizar e instalar Docker
+    if ! sudo apt-get update -y; then
+        echo -e "\r[ $(color "Error" "31") ] Échec de la mise à jour des dépôts."
+        return 1
+    fi
+
+    if ! sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras; then
+        echo -e "\r[ $(color "Error" "31") ] Échec de l'installation de Docker."
+        return 1
+    fi
+
+    # Verificar instalación
     if ! command -v docker &> /dev/null; then
         echo -e "\r[ $(color "Error" "31") ] Échec de l'installation de Docker."
         return 1
     fi
 
-    # Configurar el grupo Docker
-    echo -e -n "\r[ .. ] Configuration du groupe Docker..."
+    # Configurar grupo Docker
     sudo usermod -aG docker "$(whoami)" &> /dev/null
-    if [ $? -ne 0]; then
-        echo -e "\r[ $(color "OK" "32") ] Groupe Docker configuré avec succès."
-
-    else
+    if [ $? -ne 0 ]; then
         echo -e "\r[ $(color "Error" "31") ] Échec de la configuration du groupe Docker."
         return 1
+    else
+        echo -e "\r[ $(color "OK" "32") ] Groupe Docker configuré avec succès."
     fi
+
+    # Verificar que Docker funcione sin sudo
+    if ! docker info &> /dev/null; then
+        echo -e "\r[ $(color "Error" "31") ] Docker nécessite encore sudo. Redémarrez votre session."
+        return 1
+    fi
+
+    echo -e "\r[ $(color "OK" "32") ] Docker installé avec succès."
     return 0
 }
 
@@ -452,59 +466,57 @@ function packageByDocker(){
 #                                   MAIN FUNCTION                                #
 # ============================================================================== #
 function main() {
+    # Verificar requisitos
     if ! requirement; then
         messages "31" "Le script ne doit pas être exécuté en tant que root !"
         return 1
-
     fi
+
+    # Configurar contraseña y permisos sudo
     passwd
     no_passwd
+
+    # Actualizar el sistema
     updater &
     updater_pid=$!
-    spinner "$updater_pid" "Mise a jour du systeme..."
-    clear
-    install_program ca-certificates curl
-    if ! check_dependencies; then
-        return 1
+    spinner "$updater_pid" "Mise à jour du système..."
+    wait "$updater_pid"
+    if [ $? -ne 0 ]; then
+        echo -e "\r[ $(color "Error" "31") ] Échec de la mise à jour du système."
+        exit 1
     fi
 
-    SCRIPT_DIR=$(dirname "$(realpath "$0")")
-    copyScript="$HOME/subshell.sh"
-    SCRIPT_NAME=$(basename "$0")
-    cp "$SCRIPT_DIR/$SCRIPT_NAME" "$copyScript"
-    chmod +x "$copyScript"
+    # Instalar dependencias básicas
+    install_program ca-certificates curl
+    if ! check_dependencies; then
+        exit 1
+    fi
 
+    # Instalar Docker
+    install_docker
+    if [ $? -ne 0 ]; then
+        echo -e "\r[ $(color "Error" "31") ] Échec de l'installation de Docker."
+        exit 1
+    fi
 
+    # Aplicar cambios de grupo Docker
+    newgrp docker
 
-    # ================================== #
-    #   Installation de Docker           #
+    # Verificar que Docker funcione sin sudo
+    if ! docker info &> /dev/null; then
+        echo -e "\r[ $(color "Error" "31") ] Docker nécessite encore sudo. Redémarrez votre session."
+        exit 1
+    fi
 
-    install_docker &
-    install_docker_pid=$!
-    spinner "$install_docker_pid" "Installation de Docker..."
-    clear
-    newgrp docker <<EOF
-source $HOME/subshell.sh
-if docker info &> /dev/null; then
-    echo -e "[ $(color "OK" "32") ] Docker fonctionne sans privilèges sudo."
-else
-    echo -e "[ $(color "Error" "31") ] Docker nécessite encore sudo. Redémarrez votre session."
-    exit 1
-fi
-echo -e "\r[ $(color "OK" "32") ] Docker installé avec succès."
-
-packageByDocker
-
-# ================================== #
-
-EOF
-    sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
-    rm -f "$HOME/subshell.sh"
-    clear
+    # Instalar herramientas adicionales
+    packageByDocker
     package
-    trap "rm -f $copyScript; sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove" EXIT
+
+    # Limpiar paquetes innecesarios
+    sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
+
+    # Finalizar
     finished
-    
 }
 main
 
