@@ -518,5 +518,5 @@ function main() {
     # Finalizar
     finished
 }
-main
 
+main
