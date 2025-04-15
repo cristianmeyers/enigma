@@ -325,7 +325,7 @@ function install_docker() {
     sudo install -m 0755 -d /etc/apt/keyrings/docker.asc
 
     # Descargar clave GPG
-    if ! sudo curl --max-time 20 -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc; then
+    if ! sudo curl --max-time 40 -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc; then
         echo -e "\r[ $(color "Error" "31") ] Échec de l'ajout de la clé GPG Docker."
         return 1
     fi
