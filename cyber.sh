@@ -321,12 +321,6 @@ function install_program() {
 function install_docker() {
     echo -e -n "\r[ .. ] Installation de Docker..."
 
-    # Eliminar versiones previas
-    sudo apt remove -y --purge docker docker-engine docker.io containerd runc || true
-    sudo apt autoremove -y || true
-    sudo rm -rf /etc/apt/sources.list.d/docker.list
-    sudo rm -rf /etc/apt/keyrings/docker.asc
-
     # Crear directorio para claves GPG
     sudo install -m 0755 -d /etc/apt/keyrings/docker.asc
 
@@ -598,13 +592,8 @@ function main() {
 
     # Instalar Docker
     install_docker
-    if [ $? -ne 0 ]; then
-        echo -e "\r[ $(color "Error" "31") ] Échec de l'installation de Docker."
-        exit 1
-    fi
+    errorMaker "Échec de l'installation de Docker."
 
-    # Aplicar cambios de grupo Docker
-    newgrp docker
 
     # Verificar que Docker funcione sin sudo
     if ! docker info &> /dev/null; then
@@ -613,8 +602,8 @@ function main() {
     fi
 
     # Instalar herramientas adicionales
-    packageByDocker
-    package
+    #packageByDocker
+    #package
 
     # Limpiar paquetes innecesarios
     sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
@@ -622,3 +611,4 @@ function main() {
     # Finalizar
     finished
 }
+main
