@@ -328,66 +328,28 @@ function install_docker() {
     sudo rm -rf /etc/apt/keyrings/docker.asc
 
     # Crear directorio para claves GPG
-    sudo install -m 0755 -d /etc/apt/keyrings
+    sudo install -m 0755 -d /etc/apt/keyrings/docker.asc
 
     # Descargar clave GPG
     if ! sudo curl --max-time 20 -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc; then
         echo -e "\r[ $(color "Error" "31") ] Échec de l'ajout de la clé GPG Docker."
         return 1
     fi
-    if [ ! -f /etc/apt/keyrings/docker.asc ]; then
+    if [ -f /etc/apt/keyrings/docker.asc ]; then
+        sudo chmod a+r /etc/apt/keyrings/docker.asc
+    else
         echo -e "\r[ $(color "Error" "31") ] La clé GPG Docker n'a pas été téléchargée."
         return 1
     fi
-    sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-    # Configurar repositorio
-    if [ -f /etc/os-release ]; then
-        source /etc/os-release
-        CODENAME="${UBUNTU_CODENAME:-$VERSION_CODENAME}"
-        if [ -z "$CODENAME" ]; then
-            echo -e "\r[ $(color "Error" "31") ] Impossible de déterminer le nom de la distribution."
-            return 1
-        fi
-    else
-        echo -e "\r[ $(color "Error" "31") ] Fichier /etc/os-release introuvable."
-        return 1
-    fi
-
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $CODENAME stable" | \
-    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-    # Actualizar e instalar Docker
-    if ! sudo apt-get update -y; then
-        echo -e "\r[ $(color "Error" "31") ] Échec de la mise à jour des dépôts."
-        return 1
-    fi
-
-    if ! sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras; then
-        echo -e "\r[ $(color "Error" "31") ] Échec de l'installation de Docker."
-        return 1
-    fi
-
-    # Verificar instalación
-    if ! command -v docker &> /dev/null; then
-        echo -e "\r[ $(color "Error" "31") ] Échec de l'installation de Docker."
-        return 1
-    fi
-
-    # Configurar grupo Docker
-    sudo usermod -aG docker "$(whoami)" &> /dev/null
-    if [ $? -ne 0 ]; then
-        echo -e "\r[ $(color "Error" "31") ] Échec de la configuration du groupe Docker."
-        return 1
-    else
-        echo -e "\r[ $(color "OK" "32") ] Groupe Docker configuré avec succès."
-    fi
-
-    # Verificar que Docker funcione sin sudo
-    if ! docker info &> /dev/null; then
-        echo -e "\r[ $(color "Error" "31") ] Docker nécessite encore sudo. Redémarrez votre session."
-        return 1
-    fi
+    sudo bash -c "cat > /etc/apt/sources.list.d/docker.list <<dockerconf
+deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable
+dockerconf"
+    sudo apt update -y &> /dev/null
+    errorMaker "Échec de la mise à jour de la liste des paquets."
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras
+    curl -fsSL "https://get.docker.com/" | sh
+    sudo usermod -aG docker $(id -u -n)
+    newgrp docker
 
     echo -e "\r[ $(color "OK" "32") ] Docker installé avec succès."
     return 0
@@ -403,6 +365,7 @@ function package() {
     echo;echo
     local programs=(
         nmap
+        sed
         wireshark
         hydra
         sqlmap
@@ -581,6 +544,9 @@ pythonconf'
 
         
 }
+
+
+
 # ============================================================================== #
 #                                   Package Snap                                 #
 # ============================================================================== #
@@ -594,6 +560,11 @@ function packageBySnap(){
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
     echo -e "\r[ $(color "OK" "32") ] $(color "Metasploit" "32") installé avec succès."
 }
+
+
+
+
+
 
 # ============================================================================== #
 #                                   MAIN FUNCTION                                #
