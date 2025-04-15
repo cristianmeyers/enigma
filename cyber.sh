@@ -189,7 +189,7 @@ function finished() {
                                                                 
 
     ' "36"
-    messages "46" "36" "Installation Complète : $(echo -ne $(color "v1.0" "32"))" "left"
+    messages "46" "36" "Installation Complète : $(echo -ne $(color "v1.1" "32"))" "left"
     echo
 }
 
@@ -299,13 +299,11 @@ function install_program() {
              #Once installed
             if [[ $? -eq 0 ]]; then
                 echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-                echo -ne "\r[ $(color "OK" "32") ] $(color "$program" "32") installé avec succès."
-                echo
+                echo -e "\r[ $(color "OK" "32") ] $(color "$program" "32") installé avec succès."
             else
                 echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-                echo -ne "\r[ $(color "Error" "31") ] Échec de l'installation de $(color "$program" "36")."
+                echo -e "\r[ $(color "Error" "31") ] Échec de l'installation de $(color "$program" "36")."
                 success=false
-                echo
                 continue
             fi
         else
@@ -395,10 +393,6 @@ function install_docker() {
     return 0
 }
 
-# ============================================================================== #
-#                                  Functions des SIO                             #
-# ============================================================================== #
-
 
 # ============================================================================== #
 #                                   Package suite                                #
@@ -423,17 +417,21 @@ function package() {
         git
         openssl
         uuid-runtime
+        gparted
         tar
         coreutils
-        pipx
     )
 
     for program in "${programs[@]}"; do
         install_program "$program"
     done
 }
+# ============================================================================== #
+#                                   Package Docker                               #
+# ============================================================================== #
+
 function packageByDocker(){
-    # spiderfoot
+    # ========================== spiderfoot
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "spiderfoot" "32") via Docker..."
     if ! [ -d "$HOME/spiderfoot" ];then
         git clone https://github.com/smicallef/spiderfoot.git "$HOME/spiderfoot" &> /dev/null
@@ -446,7 +444,7 @@ function packageByDocker(){
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
     echo -e "\r[ $(color "OK" "32") ] $(color "spiderfoot" "32") installé avec succès via Docker."
 
-    # DVWA
+    # =========================== DVWA
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "DVWA" "32") via Docker..."
     if ! [ -d "$HOME/DVWA" ];then
         git clone https://github.com/digininja/DVWA.git "$HOME/DVWA" &> /dev/null
@@ -457,9 +455,144 @@ function packageByDocker(){
         errorMaker "Impossible de lancer le conteneur DVWA"
     fi
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -e "\r[ $(color "OK" "32") ] $(color "DVWA" "32") installé avec succès via Docker."
+    echo -e "\r[ $(color "OK" "32") ] $(color "DVWA" "32") installé avec succès Par Jérémy"
+
+    # =========================== Sysreptor
+    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Sysreptor" "32")..."
+    if ! is_installedByDocker "sysreptor-app"; then
+        if ! curl -fsSL https://docs.sysreptor.com/install.sh -o get-sysreptor.sh > /dev/null 2>&1; then
+            echo -e "\r[ $(color 'Errror' '31') ] Échec du téléchargement du script $(color "Sysreptor" "32") !"
+            exit 1
+        fi
+        cat << 'sysrep' >> get-sysreptor.sh
+
+if [ -z "$SYSREPTOR_CADDY_FQDN" ]; then
+    echo "URL: http://127.0.0.1:$SYSREPTOR_CADDY_PORT" > ~/sysreptor-credential.txt
+else
+    echo "URL: http://$SYSREPTOR_CADDY_FQDN:$SYSREPTOR_CADDY_PORT" > ~/sysreptor-credential.txt
+fi
+echo "Username: reptor" >> ~/sysreptor-credential.txt
+echo "Password: $password" >> ~/sysreptor-credential.txt
+sysrep
+        # Reponses d'avance, les espaces vides representent "Enter"
+        bash get-sysreptor.sh << repsysreptor
+
+y
+y
+y
+y
+
+localhost
+y
+y
+repsysreptor
+
+        errorMaker "Impossible de lancer $(color "Sysreptor" "33")"
+        echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+        echo -e "\r[ $(color "OK" "32") ] $(color "Sysreptor" "32") installé avec succès Par Vincent."
+    
+    fi
+    # =========================== Nessus
+    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Nessus" "32")..."
+    if ! is_installedByDocker "nessus-managed"; then
+        docker pull tenable/nessus:latest-oracle &> /dev/null
+        errorMaker "Impossible de télécharger l'image Nessus"
+        docker run --name "nessus-managed" -d -p 127.0.0.1:8834:8834 tenable/nessus:latest-oracle &> /dev/null
+        errorMaker "Impossible de lancer le conteneur Nessus"
+    fi
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+    echo -e "\r[ $(color "OK" "32") ] $(color "Nessus" "32") installé avec succès Par Vincent."
 
     
+}
+# ============================================================================== #
+#                                   Package Python                               #
+# ============================================================================== #
+function packageByPython(){
+    programs=(
+        python3
+        python3-argcomplete
+        python3-pip
+        python3-full
+        pipx
+    )
+    for program in "${programs[@]}"; do
+        install_program "$program"
+    done
+    # =========================== configuration de python3
+    echo -ne "\r[ $(color "..." "32") ] Configuration de $(color "python3" "32")..."
+    if ! [ -f /usr/local/share/.venv/bin/activate ]; then
+        sudo python3 -m venv /usr/local/share/.venv &> /dev/null
+        errorMaker "Impossible de créer l'environnement virtuel python3"
+        sudo bash -c 'cat << pythonconf > /etc/profile.d/python3.sh
+#!/bin/sh
+if [ -f /usr/local/share/.venv/bin/activate ]; then
+    source /usr/local/share/.venv/bin/activate
+fi
+pythonconf'
+
+        source /etc/profile.d/python3.sh
+        errorMaker "Impossible de créer le fichier de configuration bashrc"
+        if ! sudo grep -q '^Defaults\s+secure_path=".*:/usr/local/share/.venv/bin.*"' /etc/sudoers; then
+            sudo sed -E -i "s|(^Defaults\s+secure_path=\"[^\"]*)\"|\1:/usr/local/share/.venv/bin\"|" /etc/sudoers
+            errorMaker "Impossible de modifier le fichier sudoers"
+        fi
+    fi
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+    echo -e "\r[ $(color "OK" "32") ] $(color "python3" "32") configuré avec succès."
+
+    # =========================== SEToolKit
+
+    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "SEToolKit" "32") via Python..."
+    if ! is_installedByDocker "setoolkit"; then
+        git clone https://github.com/trustedsec/social-engineer-toolkit/ $HOME/setoolkit/ &> /dev/null
+        errorMaker "Impossible de cloner le dépôt SEToolKit"
+        cd $HOME/setoolkit && sudo pip3 install -r requirements.txt > /dev/null 2>&1
+        errorMaker "Impossible d'installer les dépendances de SEToolKit"
+        sudo python3 setup.py > /dev/null 2>&1
+        cd $HOME
+        echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+        echo -e "\r[ $(color "OK" "32") ] $(color "SEToolKit" "32") installé avec succès."
+    fi
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+    echo -e "\r[ $(color "OK" "32") ] $(color "SEToolKit" "32") installé avec succès."
+    
+    # =========================== Exegol
+    # ============= Vérification de pipx
+    if ! command -v pipx &> /dev/null; then
+        echo "$(color '...' '33') pipx n'est pas installé. Installation en cours..."
+        python3 -m pip install --user pipx
+        python3 -m pipx ensurepath
+        errorMaker "Impossible d'installer pipx"
+    fi
+
+    # =========================== Installation d'Exegol
+    echo -ne "\r[ $(color '...' '32') ] Installation de $(color 'Exegol' '32') via pipx..."
+    pipx install exegol --force > /dev/null 2>&1
+    errorMaker "Impossible d'installer Exegol"
+
+    # =========================== Configuration de l'alias Exegol
+    if ! grep -q "alias exegol=" ~/.bash_aliases 2>/dev/null; then
+        echo "alias exegol='sudo -E $(which exegol)'" >> ~/.bash_aliases
+        errorMaker "Impossible de créer l'alias exegol"
+        source ~/.bash_aliases || echo "Redémarrez votre terminal pour activer l'alias $(color "Exegol" "32")."
+    fi
+    echo -e "\r[ $(color 'OK' '32') ] $(color 'Exegol' '32') installé avec succès."
+
+        
+}
+# ============================================================================== #
+#                                   Package Snap                                 #
+# ============================================================================== #
+function packageBySnap(){
+    # =========================== Metasploit
+    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Metasploit" "32") via Snap..."
+    if ! is_installedByDocker "metasploit-framework"; then
+        sudo snap install metasploit-framework > /dev/null 2>&1
+        errorMaker "Impossible de lancer le conteneur Metasploit"
+    fi
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+    echo -e "\r[ $(color "OK" "32") ] $(color "Metasploit" "32") installé avec succès."
 }
 
 # ============================================================================== #
@@ -518,5 +651,3 @@ function main() {
     # Finalizar
     finished
 }
-
-main
