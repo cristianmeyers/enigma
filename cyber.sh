@@ -322,13 +322,13 @@ function install_docker() {
     echo -e -n "\r[ .. ] Installation de Docker..."
 
     # Crear directorio para claves GPG
-    sudo install -m 0755 -d /etc/apt/keyrings/docker.asc
+    mkdir -p /etc/apt/keyrings &> /dev/null
+    errorMaker "Échec de la création du répertoire pour les clés GPG."
+    chmod 755 /etc/apt/keyrings &> /dev/null
+    errorMaker "Échec de la modification des permissions du répertoire pour les clés GPG."
+    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+    errorMaker "Échec du téléchargement de la clé GPG Docker."
 
-    # Descargar clave GPG
-    if ! sudo curl --max-time 40 -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc; then
-        echo -e "\r[ $(color "Error" "31") ] Échec de l'ajout de la clé GPG Docker."
-        return 1
-    fi
     if [ -f /etc/apt/keyrings/docker.asc ]; then
         sudo chmod a+r /etc/apt/keyrings/docker.asc
     else
@@ -340,7 +340,7 @@ deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] h
 dockerconf"
     sudo apt update -y &> /dev/null
     errorMaker "Échec de la mise à jour de la liste des paquets."
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras 
     curl -fsSL "https://get.docker.com/" | sh
     sudo usermod -aG docker $(id -u -n)
     newgrp docker
