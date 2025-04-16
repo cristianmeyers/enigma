@@ -343,9 +343,9 @@ dockerconf"
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras 
     curl -fsSL "https://get.docker.com/" | sh
     sudo usermod -aG docker $(id -u -n)
-    newgrp docker
-
-    echo -e "\r[ $(color "OK" "32") ] Docker installé avec succès."
+    errorMaker "Échec de l'installation de Docker."
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"   
+    echo -e "\r[ $(color "OK" "32") ] $(color "Docker" "32") installé avec succès."
     return 0
 }
 
@@ -570,40 +570,50 @@ function main() {
         return 1
     fi
 
-    # Configurar contraseña y permisos sudo
-    passwd
-    no_passwd
 
-    # Actualizar el sistema
+    passwd;no_passwd
+
     updater &
     updater_pid=$!
     spinner "$updater_pid" "Mise à jour du système..."
     wait "$updater_pid"
-    if [ $? -ne 0 ]; then
-        echo -e "\r[ $(color "Error" "31") ] Échec de la mise à jour du système."
-        exit 1
-    fi
+    errorMaker "Échec de la mise à jour du système."; clear
 
-    # Instalar dependencias básicas
     install_program ca-certificates curl
     if ! check_dependencies; then
         exit 1
     fi
+    
+    package
 
-    # Instalar Docker
-    install_docker
-    errorMaker "Échec de l'installation de Docker."
+    # Docker install and configuration
 
-
-    # Verificar que Docker funcione sin sudo
-    if ! docker info &> /dev/null; then
-        echo -e "\r[ $(color "Error" "31") ] Docker nécessite encore sudo. Redémarrez votre session."
+    if command -v realpath &> /dev/null; then
+        tempfile=$(realpath "$0")
+    elif command -v readlink &> /dev/null; then
+        tempfile=$(readlink -f "$0")
+    else
+        errorMaker "Impossible de trouver le chemin absolu du script."
         exit 1
     fi
 
-    # Instalar herramientas adicionales
-    #packageByDocker
-    #package
+    # Crear una copia temporal del script sin ejecutar `main`
+    cp "$tempfile" "$HOME/.tempscript.sh" &> /dev/null 
+    if grep -q "^main$" "$HOME/.tempscript.sh"; then
+        sed '/^main$/d' "$HOME/.tempscript.sh" > "$HOME/.tempscript_clean.sh"
+    else
+        cp "$HOME/.tempscript.sh" "$HOME/.tempscript_clean.sh"
+    fi
+    chmod +x "$HOME/.tempscript_clean.sh" &> /dev/null
+    rm "$HOME/.tempscript.sh" &> /dev/null
+
+    # Ejecutar instalación de Docker y subshell con el script limpio
+    install_docker
+    newgrp docker << dockersubshell
+source "$HOME/.tempscript_clean.sh"
+packageByDocker
+exit 0
+dockersubshell
 
     # Limpiar paquetes innecesarios
     sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
