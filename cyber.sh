@@ -22,9 +22,8 @@ function spinner() {
             sleep "$delay"
         done
     done
-    echo -e "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
 }
-
 function messages() {
     local len
     local padding
@@ -82,8 +81,6 @@ function errorMaker() {
         exit 1
     fi
 }
-
-
 function requirement() {
     if [ "$(id -u)" != 0 ]; then
         return 0
@@ -100,7 +97,6 @@ check_dependencies() {
         fi
     done
 }
-
 function updater() {
     function handle_error() {
         local code="$1"
@@ -149,7 +145,6 @@ function updater() {
     fi
     handle_success "Mise à jour du système terminée."
 }
-
 function get_distro() {
     local distro="unknown"
     local package_manager="unknown"
@@ -189,10 +184,9 @@ function finished() {
                                                                 
 
     ' "36"
-    messages "46" "36" "Installation Complète : $(echo -ne $(color "v1.1" "32"))" "left"
+    messages "46" "36" "Installation Complète par Cristian : $(echo -ne $(color "v1.4" "32")) (redemarrez votre session)" "left"
     echo
 }
-
 function passwd() {
     PASSWORD_FILE="$HOME/.password"
 
@@ -213,7 +207,6 @@ function passwd() {
         fi
     fi
 }
-
 function no_passwd() {
     local USER=$(whoami)
 
@@ -228,7 +221,6 @@ function no_passwd() {
         fi
     fi
 }
-
 function is_installed() {
     local program="$1"
 
@@ -269,7 +261,6 @@ function is_installedByDocker() {
         return 1
     fi
 }
-
 function install_program() {
     local success=true
 
@@ -317,16 +308,14 @@ function install_program() {
         return 1
     fi
 }
-
 function install_docker() {
     echo -e -n "\r[ .. ] Installation de Docker..."
-
     # Crear directorio para claves GPG
     mkdir -p /etc/apt/keyrings &> /dev/null
     errorMaker "Échec de la création du répertoire pour les clés GPG."
     chmod 755 /etc/apt/keyrings &> /dev/null
     errorMaker "Échec de la modification des permissions du répertoire pour les clés GPG."
-    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc &> /dev/null
     errorMaker "Échec du téléchargement de la clé GPG Docker."
 
     if [ -f /etc/apt/keyrings/docker.asc ]; then
@@ -340,7 +329,7 @@ deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] h
 dockerconf"
     sudo apt update -y &> /dev/null
     errorMaker "Échec de la mise à jour de la liste des paquets."
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras 
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras &> /dev/null
     curl -fsSL "https://get.docker.com/" | sh
     sudo usermod -aG docker $(id -u -n)
     errorMaker "Échec de l'installation de Docker."
@@ -348,7 +337,6 @@ dockerconf"
     echo -e "\r[ $(color "OK" "32") ] $(color "Docker" "32") installé avec succès."
     return 0
 }
-
 
 # ============================================================================== #
 #                                   Package suite                                #
@@ -432,7 +420,8 @@ echo "Username: reptor" >> ~/sysreptor-credential.txt
 echo "Password: $password" >> ~/sysreptor-credential.txt
 sysrep
         # Reponses d'avance, les espaces vides representent "Enter"
-        bash get-sysreptor.sh << repsysreptor
+        # redirection vers les dev faite par cristian
+        bash get-sysreptor.sh << repsysreptor > /dev/null 2>&1
 
 y
 y
@@ -539,12 +528,19 @@ pythonconf'
         
 }
 
-
-
 # ============================================================================== #
 #                                   Package Snap                                 #
 # ============================================================================== #
 function packageBySnap(){
+    # =========================== Vs Code
+    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Vs Code" "32") via Snap..."
+    if ! is_installedByDocker "code"; then
+        sudo snap install --classic code > /dev/null 2>&1
+        errorMaker "Impossible d'installer Vs Code"
+    fi
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+    echo -e "\r[ $(color "OK" "32") ] $(color "Vs Code" "32") installé avec succès."
+
     # =========================== Metasploit
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Metasploit" "32") via Snap..."
     if ! is_installedByDocker "metasploit-framework"; then
@@ -555,39 +551,33 @@ function packageBySnap(){
     echo -e "\r[ $(color "OK" "32") ] $(color "Metasploit" "32") installé avec succès."
 }
 
-
-
-
-
-
 # ============================================================================== #
 #                                   MAIN FUNCTION                                #
 # ============================================================================== #
 function main() {
-    # Verificar requisitos
     if ! requirement; then
         messages "31" "Le script ne doit pas être exécuté en tant que root !"
         return 1
     fi
-
-
     passwd;no_passwd
-
     updater &
     updater_pid=$!
     spinner "$updater_pid" "Mise à jour du système..."
     wait "$updater_pid"
     errorMaker "Échec de la mise à jour du système."; clear
-
     install_program ca-certificates curl
     if ! check_dependencies; then
         exit 1
     fi
-    
     package
+    if ! is_installed mysql; then
+        install_program "mysql-server"
+        if [ $? -ne 0 ]; then
+            install_command "mariadb-server"
+        fi
+    fi
 
     # Docker install and configuration
-
     if command -v realpath &> /dev/null; then
         tempfile=$(realpath "$0")
     elif command -v readlink &> /dev/null; then
@@ -596,8 +586,7 @@ function main() {
         errorMaker "Impossible de trouver le chemin absolu du script."
         exit 1
     fi
-
-    # Crear una copia temporal del script sin ejecutar `main`
+    # Copy of the script without `main`
     cp "$tempfile" "$HOME/.tempscript.sh" &> /dev/null 
     if grep -q "^main$" "$HOME/.tempscript.sh"; then
         sed '/^main$/d' "$HOME/.tempscript.sh" > "$HOME/.tempscript_clean.sh"
@@ -607,7 +596,7 @@ function main() {
     chmod +x "$HOME/.tempscript_clean.sh" &> /dev/null
     rm "$HOME/.tempscript.sh" &> /dev/null
 
-    # Ejecutar instalación de Docker y subshell con el script limpio
+    # subshell
     install_docker
     newgrp docker << dockersubshell
 source "$HOME/.tempscript_clean.sh"
@@ -615,10 +604,10 @@ packageByDocker
 exit 0
 dockersubshell
 
-    # Limpiar paquetes innecesarios
+    # Clean up
     sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
-
-    # Finalizar
+    rm "$HOME/.tempscript_clean.sh" &> /dev/null
+    clear
     finished
 }
 main

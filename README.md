@@ -1,151 +1,147 @@
-# ENIGMA
+# **Installation Suite Cyber (Enigma)**
 
-## **Script d'Installation pour la Cybersécurité**
+![GitHub](https://img.shields.io/badge/Version-v1.1-blue) ![License](https://img.shields.io/badge/License-MIT-green)
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+Ce script automatise l'installation d'un ensemble complet d'outils de cybersécurité, développement et administration système sur des distributions Linux basées sur Debian, Red Hat, ou Arch. Il est conçu pour les professionnels de la sécurité, les développeurs et les administrateurs système.
 
-Ce script automatise l'installation et la configuration d'une suite complète d'outils essentiels pour la cybersécurité sur des systèmes Linux. Il est conçu pour simplifier la configuration d'un environnement sécurisé et efficace, adapté aux professionnels de la sécurité, chercheurs, étudiants ou passionnés.
+## **Table des matières**
 
----
-
-## **Table des Matières**
-
-1. [Description du Projet](#description-du-projet)
-2. [Caractéristiques Principales](#caractéristiques-principales)
+1. [Description](#description)
+2. [Fonctionnalités principales](#fonctionnalités-principales)
 3. [Prérequis](#prérequis)
 4. [Installation](#installation)
-5. [Utilisation](#utilisation)
-6. [Liste des Programmes Installés](#liste-des-programmes-installés)
-7. [Personnalisation](#personnalisation)
-8. [Contributions](#contributions)
-9. [Licence](#licence)
+5. [Programmes installés](#programmes-installés)
+6. [Contribution](#contribution)
+7. [Licence](#licence)
 
 ---
 
-## **Description du Script**
+## **Description**
 
-L'objectif principal de ce script est de fournir une solution rapide et facile pour configurer un environnement dédié à la cybersécurité. Il automatise l'installation de nombreux outils populaires, vérifie s'ils sont déjà installés et configure les permissions nécessaires pour leur utilisation.
-
-Ce script est idéal pour :
-
-- Les **professionnels de la cybersécurité** qui ont besoin d'un environnement prêt à l'emploi.
-- Les **chercheurs en vulnérabilités** qui veulent tester des scénarios d'attaque ou de défense.
-- Les **étudiants en sécurité informatique** qui apprennent à utiliser des outils spécialisés.
-- Toute personne intéressée par l'apprentissage des techniques de cybersécurité.
+Ce script configure un environnement complet pour les tests de pénétration, les audits de sécurité et le développement. Il installe une variété d'outils via le gestionnaire de paquets du système, Docker, Python (`pip`), et Snap. Le script est modulaire et peut être exécuté sans privilèges root.
 
 ---
 
-## **Caractéristiques Principales**
+## **Fonctionnalités principales**
 
-- **Automatisation complète :** Installe tous les outils nécessaires sans intervention manuelle.
-- **Vérification préalable :** Vérifie si les outils sont déjà installés avant de tenter de les réinstaller.
-- **Compatibilité multi-distribution :** Compatible avec les distributions basées sur Debian/Ubuntu (via `apt`), Fedora/RHEL (via `dnf`), Arch Linux (via `pacman`) et autres.
-- **Configuration avancée :**
-  - Configure les permissions `NOPASSWD` pour éviter la saisie répétée de mots de passe lors de l'exécution de commandes administratives.
-  - Gère les installations via `snap`, `flatpak` et `AppImage`.
-- **Extensibilité :** Facilement personnalisable pour ajouter ou supprimer des outils selon vos besoins.
+- **Automatisation complète** : Installation de tous les outils nécessaires sans intervention manuelle.
+- **Support multi-distribution** : Compatible avec Ubuntu, Debian, Fedora, CentOS, Arch, etc.
+- **Gestion des dépendances** : Vérifie et installe les dépendances requises avant de procéder.
+- **Configuration de Docker** : Installe et configure Docker pour exécuter des conteneurs spécifiques.
+- **Personnalisation** : Les programmes peuvent être ajoutés ou supprimés facilement dans le script.
+- **Interface utilisateur intuitive** : Messages colorés et animations pour suivre l'avancement.
 
 ---
 
 ## **Prérequis**
 
-Avant d'exécuter le script, assurez-vous que votre système répond aux exigences suivantes :
+Avant d'exécuter ce script, assurez-vous que votre système respecte les conditions suivantes :
 
-- Système d'exploitation Linux (**testé sur Ubuntu, Debian, Fedora, Arch Linux et leurs dérivés**).
-- Accès à un compte utilisateur avec privilèges superutilisateur (`sudo`).
-- Connexion Internet stable pour télécharger et installer les outils.
-- Espace disque suffisant pour l'installation des programmes (min 100Go).
+1. **Système d'exploitation** :
+   - Une distribution Linux basée sur Debian, Red Hat ou Arch.
+2. **Accès Internet** :
+   - Le script télécharge des paquets et des images Docker depuis Internet.
+3. **Droits d'administration** :
+   - Vous devez avoir accès à un compte utilisateur avec des privilèges `sudo`.
+4. **Espace disque suffisant** :
+   - Assurez-vous d'avoir au moins 10 Go d'espace libre pour installer tous les outils.
 
 ---
 
 ## **Installation**
 
-Suivez ces étapes simples pour installer et exécuter le script :
-
-1. Clonez ce dépôt sur votre machine locale :
+1. **Télécharger le script** :
 
    ```bash
-   git clone https://github.com/votre-utilisateur/cybersecurity-setup.git
-   cd cybersecurity-setup
+   curl -fsSL https://github.com/cristianmeyers/enigma/blob/main/cyber.sh -o install.sh
    ```
 
-2. Rendez le script exécutable :
+2. **Rendre le script exécutable** :
 
    ```bash
-   chmod +x setup.sh
+   chmod +x cyber.sh
    ```
 
-3. Exécutez le script :
+3. **Exécuter le script** :
+
    ```bash
-      ./setup.sh
+   ./cyber.sh
    ```
 
----
-
-## **Liste des Programmes Installés**
-
-Le script installe et configure une liste complète d'outils populaires pour la cybersécurité. Voici une classification par catégorie :
+4. **Suivre les instructions** :
+   - Le script vous guidera tout au long du processus. Il peut demander votre mot de passe `sudo` et certaines configurations supplémentaires.
 
 ---
 
-### **Applications Cyber**
+## **Programmes installés**
 
-- **Docker :** Plateforme de conteneurisation pour créer des environnements isolés.
-- **DVWA (Damn Vulnerable Web Application) :** Application web vulnérable conçue pour tester les vulnérabilités.
-- **Exegol :** Environnement virtuel préconfiguré pour les tests de pénétration.
-- **Add-ons pour Firefox :** Extensions de sécurité et de confidentialité pour le navigateur Firefox.
+### **Outils installés via le gestionnaire de paquets**
 
----
+- **nmap** : Scanner de réseau et de ports.
+- **wireshark** : Analyseur de trafic réseau.
+- **hydra** : Outil de force brute pour tester les authentifications.
+- **sqlmap** : Exploitation de vulnérabilités SQL.
+- **mysql-server** : Serveur de base de données MySQL.
+- **snapd** : Gestionnaire de paquets Snap.
+- **geoip-bin** : Utilitaire de géolocalisation par IP.
+- **sublist3r** : Enumération de sous-domaines.
+- **nikto** : Scanner de vulnérabilités web.
+- **dsniff** : Ensemble d'outils pour l'audit réseau.
+- **hping3** : Outil de test réseau et d'attaques simulées.
+- **macchanger** : Changement d'adresse MAC.
+- **git** : Système de contrôle de versions.
+- **openssl** : Outils cryptographiques.
+- **uuid-runtime** : Générateur d'identifiants uniques universels (UUID).
+- **gparted** : Éditeur de partitions de disque.
+- **tar** : Compression et décompression de fichiers.
+- **coreutils** : Utilitaires de base du système.
 
-### **Logiciels Cyber**
+### **Outils installés via Docker**
 
-- **Sublime Text / VSCode :** Éditeurs de texte puissants pour le développement et l'analyse de scripts.
-- **Nmap :** Outil de scan réseau et de ports pour découvrir les hôtes et services.
-- **Wireshark :** Analyseur de trafic réseau pour capturer et inspecter les paquets.
-- **Hydra :** Outil de force brute pour tester les mécanismes d'authentification.
-- **Burp Suite :** Suite complète pour l'analyse et l'exploitation des vulnérabilités web.
-- **SpiderFoot :** Outil automatisé pour la collecte d'informations et la reconnaissance.
-- **Nessus :** Scanner de vulnérabilités pour identifier les failles de sécurité.
-- **SQLMap :** Outil d'exploitation de vulnérabilités SQL pour tester les bases de données web.
-- **MySQL :** Système de gestion de base de données relationnelle pour tester les vulnérabilités SQL.
-- **Metasploit Framework :** Framework puissant pour les tests de pénétration et l'exploitation de vulnérabilités.
-- **DRADIS :** Outil de gestion de reporting pour les tests de pénétration.
-- **SYSREPTOR :** Outil de gestion des incidents et des rapports de sécurité.
-- **Setoolkit :** Social-Engineer Toolkit pour les attaques de phishing et d'ingénierie sociale.
-- **Footprinting :** Ensemble de techniques pour recueillir des informations sur une cible.
-- **theHarvester :** Outil de collecte d'informations pour identifier des e-mails, sous-domaines et autres détails.
-- **Reconftw :** Framework automatisé pour la reconnaissance et l'énumération de cibles.
-- **Spoofing :** Techniques pour simuler l'identité d'une cible dans le cadre d'attaques ou d'analyses.
-- **GParted :** Éditeur de partitions pour gérer les disques et systèmes de fichiers.
+- **spiderfoot** : Outil d'intelligence sur les sources ouvertes (OSINT).
+- **DVWA (Damn Vulnerable Web Application)** : Application web vulnérable pour les tests de sécurité.
+- **Sysreptor** : Outil pour les audits de conformité réglementaire.
+- **Nessus** : Scanner avancé de vulnérabilités.
 
----
+### **Outils installés via Python**
 
-> **Note :** Vous pouvez personnaliser la liste des programmes en modifiant le fichier `setup.sh`.
+- **python3** : Environnement Python 3.
+- **pipx** : Installation isolée d'applications Python.
+- **SEToolKit (Social Engineer Toolkit)** : Ensemble d'outils pour l'ingénierie sociale.
+- **Exegol** : Environnement personnalisé pour les tests de pénétration.
 
-## **Personnalisation**
+### **Outils installés via Snap**
 
-Si vous souhaitez ajouter ou supprimer des outils, modifiez directement la section correspondante dans le fichier `setup.sh`. Par exemple :
-
-```bash
-tools=("nmap" "wireshark" "metasploit-framework" "hydra")
-```
-
-Ajoutez ou supprimez les noms des outils selon vos besoins.
+- **Metasploit Framework** : Plateforme pour le développement et l'exécution d'exploits.
 
 ---
 
-## **Contributions**
+## **Contribution**
 
-Les contributions sont les bienvenues ! Si vous souhaitez améliorer ce projet, suivez ces étapes :
+Les contributions sont les bienvenues ! Si vous souhaitez améliorer ce script, veuillez suivre ces étapes :
 
-1. Faites un fork du dépôt.
-2. Créez une nouvelle branche (`git checkout -b feature/nouvelle-fonctionnalité`).
-3. Effectuez vos modifications et faites un commit (`git commit -m "Ajoute un nouvel outil XYZ"`).
-4. Publiez vos modifications (`git push origin feature/nouvelle-fonctionnalité`).
-5. Ouvrez une Pull Request.
+1. **Fork** ce dépôt.
+2. Créez une branche pour vos modifications :
+   ```bash
+   git checkout -b feature/nom-de-votre-feature
+   ```
+3. Soumettez une pull request avec une description détaillée de vos modifications.
 
 ---
 
 ## **Licence**
 
-Ce projet est sous licence **MIT**. Consultez le fichier [LICENSE](LICENSE) pour plus de détails.
+Ce projet est sous licence MIT. Consultez le fichier [LICENSE](LICENSE) pour plus de détails.
+
+---
+
+## **Auteur**
+
+- **Cristian** : Créateur principal du script.
+- Contributions spéciales : Jérémy, Vincent.
+
+Si vous avez des questions ou des suggestions, n'hésitez pas à ouvrir une issue ou à me contacter directement.
+
+---
+
+Merci d'utiliser ce script ! 🚀
