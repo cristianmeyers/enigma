@@ -88,7 +88,7 @@ function requirement() {
         return 1
     fi
 }
-check_dependencies() {
+function check_dependencies() {
     local dependencies=("sudo" "tee")
     for dep in "${dependencies[@]}"; do
         if ! is_installed "$dep" &> /dev/null; then
@@ -523,9 +523,7 @@ pythonconf'
         errorMaker "Impossible de créer l'alias exegol"
         source ~/.bash_aliases || echo "Redémarrez votre terminal pour activer l'alias $(color "Exegol" "32")."
     fi
-    echo -e "\r[ $(color 'OK' '32') ] $(color 'Exegol' '32') installé avec succès."
-
-        
+    echo -e "\r[ $(color 'OK' '32') ] $(color 'Exegol' '32') installé avec succès."     
 }
 
 # ============================================================================== #
