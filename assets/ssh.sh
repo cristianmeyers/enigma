@@ -44,7 +44,7 @@ PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDHWMiZwCJ+GPt6o1IUgTbInNOyfJzB
 "
 
 install_ssh() {
-    if ! command -v ssh > /dev/null 2>&1; then
+    if ! command -v sshd > /dev/null 2>&1; then
         sudo apt update > /dev/null 2>&1
         sudo apt install openssh-server -y > /dev/null 2>&1
         [[ $? -ne 0 ]] && exit 1
