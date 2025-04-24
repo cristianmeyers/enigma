@@ -377,12 +377,10 @@ function package() {
 
 function install_metasploit_by_docker() {
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Metasploit" "32") via Docker..."
-
-    # Verificar si Docker está instalado
+    
     if ! command -v docker &> /dev/null; then
         echo -e "\r[ $(color "Error" "31") ] Docker n'est pas installé. Installation de Docker..."
-        install_docker
-        errorMaker "Échec de l'installation de Docker"
+        return 1
     fi
 
     if is_installedByDocker "metasploit-framework"; then
@@ -401,20 +399,24 @@ function install_metasploit_by_docker() {
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
     echo -e "\r[ $(color "OK" "32") ] $(color "Metasploit" "32") installé avec succès via Docker."
 }
-function packageByDocker(){
-    # =========================== Metasploit
-    install_metasploit_by_docker
+# =========================== Armitage
+function installArmitage(){
 
-    # =========================== Armitage
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Armitage" "32") via Docker..."
     if ! is_installedByDocker "armitage"; then
-        docker pull cyberreboot/armitage:latest &> /dev/null
+        docker pull rsmudge/armitage:latest &> /dev/null
         errorMaker "Impossible de télécharger l'image Armitage"
-        docker run --name "armitage" -d -p 5000:5000 cyberreboot/armitage:latest
+        docker run --name "armitage" -d -p 5000:5000 cyberreboot/armitage:latest &> /dev/null
         errorMaker "Impossible de lancer le conteneur Armitage"
     fi
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
     echo -e "\r[ $(color "OK" "32") ] $(color "Armitage" "32") installé avec succès via Docker."
+}
+
+function packageByDocker(){
+    # =========================== Metasploit
+    install_metasploit_by_docker
+
 
     # ========================== spiderfoot
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "spiderfoot" "32") via Docker..."
@@ -427,7 +429,7 @@ function packageByDocker(){
         errorMaker "Impossible de lancer le conteneur Spiderfoot"
     fi
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -e "\r[ $(color "OK" "32") ] $(color "spiderfoot" "32") installé avec succès via Docker."
+    echo -e "\r[ $(color "OK" "32") ] $(color "spiderfoot" "32") installé avec succès via Docker par Raphael."
 
     # =========================== DVWA
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "DVWA" "32") via Docker..."
@@ -572,7 +574,7 @@ pythonconf'
 function packageBySnap(){
     # =========================== Vs Code
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Vs Code" "32") via Snap..."
-    if ! is_installedByDocker "code"; then
+    if ! is_installedByDocker "code" ; then
         sudo snap install --classic code > /dev/null 2>&1
         errorMaker "Impossible d'installer Vs Code"
     fi
