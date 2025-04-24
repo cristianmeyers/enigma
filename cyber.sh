@@ -330,7 +330,7 @@ dockerconf"
     sudo apt update -y &> /dev/null
     errorMaker "Échec de la mise à jour de la liste des paquets."
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras &> /dev/null
-    curl -fsSL "https://get.docker.com/" | sh
+    curl -fsSL "https://get.docker.com/" | sh &> /dev/null
     sudo usermod -aG docker $(id -u -n)
     errorMaker "Échec de l'installation de Docker."
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"   
@@ -375,7 +375,47 @@ function package() {
 #                                   Package Docker                               #
 # ============================================================================== #
 
+function install_metasploit_by_docker() {
+    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Metasploit" "32") via Docker..."
+
+    # Verificar si Docker está instalado
+    if ! command -v docker &> /dev/null; then
+        echo -e "\r[ $(color "Error" "31") ] Docker n'est pas installé. Installation de Docker..."
+        install_docker
+        errorMaker "Échec de l'installation de Docker"
+    fi
+
+    if is_installedByDocker "metasploit-framework"; then
+        echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+        echo -e "\r[ $(color "OK" "32") ] $(color "Metasploit" "32") est déjà installé (via Docker)."
+        return 0
+    fi
+
+    docker pull metasploitframework/metasploit-framework:latest &> /dev/null
+    errorMaker "Impossible de télécharger l'image Docker de Metasploit"
+
+
+    docker run --name "metasploit-framework" -d -p 127.0.0.1:8080:8080 metasploitframework/metasploit-framework:latest &> /dev/null
+    errorMaker "Impossible de lancer le conteneur Metasploit"
+
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+    echo -e "\r[ $(color "OK" "32") ] $(color "Metasploit" "32") installé avec succès via Docker."
+}
 function packageByDocker(){
+    # =========================== Metasploit
+    install_metasploit_by_docker
+
+    # =========================== Armitage
+    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Armitage" "32") via Docker..."
+    if ! is_installedByDocker "armitage"; then
+        docker pull cyberreboot/armitage:latest &> /dev/null
+        errorMaker "Impossible de télécharger l'image Armitage"
+        docker run --name "armitage" -d -p 5000:5000 cyberreboot/armitage:latest
+        errorMaker "Impossible de lancer le conteneur Armitage"
+    fi
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+    echo -e "\r[ $(color "OK" "32") ] $(color "Armitage" "32") installé avec succès via Docker."
+
     # ========================== spiderfoot
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "spiderfoot" "32") via Docker..."
     if ! [ -d "$HOME/spiderfoot" ];then
@@ -539,14 +579,6 @@ function packageBySnap(){
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
     echo -e "\r[ $(color "OK" "32") ] $(color "Vs Code" "32") installé avec succès."
 
-    # =========================== Metasploit
-    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Metasploit" "32") via Snap..."
-    if ! is_installedByDocker "metasploit-framework"; then
-        sudo snap install metasploit-framework > /dev/null 2>&1
-        errorMaker "Impossible de lancer le conteneur Metasploit"
-    fi
-    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -e "\r[ $(color "OK" "32") ] $(color "Metasploit" "32") installé avec succès."
 }
 
 # ============================================================================== #
@@ -574,6 +606,7 @@ function main() {
             install_command "mariadb-server"
         fi
     fi
+    packageBySnap
 
     # Docker install and configuration
     if command -v realpath &> /dev/null; then
@@ -607,5 +640,9 @@ dockersubshell
     rm "$HOME/.tempscript_clean.sh" &> /dev/null
     clear
     finished
+    echo -e "installation de Sysreptor : $(color "Vincent" "32")."
+    echo -e "installation de Spiderfoot : $(color "Raphael" "32")."
+    echo -e "installation de DVWA : $(color "Jeremy" "32")."
+    echo -e "installation de Exegol et scripting général: $(color "Cristian" "32")."
 }
 main
