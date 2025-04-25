@@ -195,7 +195,6 @@ function passwd() {
     else
         read -s -p "$(color "Entrez votre mot de passe sudo : " "32")" PASSWORD
         echo
-    clear
         if echo "$PASSWORD" | sudo -S -v &> /dev/null; then
             echo "$PASSWORD" > "$PASSWORD_FILE"
             chmod 600 "$PASSWORD_FILE"
@@ -573,13 +572,13 @@ pythonconf'
 # ============================================================================== #
 function packageBySnap(){
     # =========================== Vs Code
-    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Vs Code" "32") via Snap..."
+    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Sublime Text" "32") via Snap..."
     if ! is_installedByDocker "code" ; then
-        sudo snap install --classic code > /dev/null 2>&1
+        sudo snap install --classic sublime-text > /dev/null 2>&1
         errorMaker "Impossible d'installer Vs Code"
     fi
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -e "\r[ $(color "OK" "32") ] $(color "Vs Code" "32") installé avec succès."
+    echo -e "\r[ $(color "OK" "32") ] $(color "Sublime Text" "32") installé avec succès."
 
 }
 
@@ -640,7 +639,8 @@ dockersubshell
     # Clean up
     sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
     rm "$HOME/.tempscript_clean.sh" &> /dev/null
-    clear
+    rm "$Home/.password" &> /dev/null
+    packageByPython
     finished
     echo -e "installation de Sysreptor : $(color "Vincent" "32")."
     echo -e "installation de Spiderfoot : $(color "Raphael" "32")."
