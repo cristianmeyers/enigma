@@ -560,6 +560,8 @@ pythonconf'
 
     # =========================== Configuration de l'alias Exegol
     if ! grep -q "alias exegol=" ~/.bash_aliases 2>/dev/null; then
+        pipx ensurepath > /dev/null 2>&1
+        errorMaker "Impossible d'ajouter le chemin pipx à .bash_aliases"
         echo "alias exegol='sudo -E $(which exegol)'" >> ~/.bash_aliases
         errorMaker "Impossible de créer l'alias exegol"
         source ~/.bash_aliases || echo "Redémarrez votre terminal pour activer l'alias $(color "Exegol" "32")."
@@ -648,3 +650,5 @@ dockersubshell
     echo -e "installation de Exegol et scripting général: $(color "Cristian" "32")."
 }
 main
+
+# nessus
