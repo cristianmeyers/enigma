@@ -575,7 +575,7 @@ pythonconf'
 function packageBySnap(){
     # =========================== Vs Code
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Sublime Text" "32") via Snap..."
-    if ! is_installedByDocker "code" ; then
+    if ! is_installedByDocker "code" &> /dev/null && command -v "code" &> /dev/null ; then
         sudo snap install --classic sublime-text > /dev/null 2>&1
         errorMaker "Impossible d'installer Vs Code"
     fi
