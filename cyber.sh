@@ -214,7 +214,7 @@ function no_passwd() {
     else
         printf "%s\n" "$PASSWORD" | sudo -S bash -c "echo '$USER ALL=(ALL) NOPASSWD: ALL' | tee -a /etc/sudoers > /dev/null"
         if [ $? -eq 0 ]; then
-            echo "[ $(color "OK" "32") ] L'utilisateur $(color "$USER" "32") n'a plus besoin d'utiliser le mot de passe."
+            echo "[ $(color "OK" "32") ] L'utilisateur $(color "$USER" "32") n'a plus besoin d'utiliser le mot de passe sudo."
         else
             echo "[ $(color "Error" "31") ] Modification Visudo échouée."
         fi
