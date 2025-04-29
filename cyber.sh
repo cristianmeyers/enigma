@@ -480,15 +480,39 @@ repsysreptor
     
     fi
     # =========================== Nessus
-    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Nessus" "32")..."
-    if ! is_installedByDocker "nessus-managed"; then
-        docker pull tenable/nessus:latest-oracle &> /dev/null
-        errorMaker "Impossible de télécharger l'image Nessus"
-        docker run --name "nessus-managed" -d -p 127.0.0.1:8834:8834 tenable/nessus:latest-oracle &> /dev/null
-        errorMaker "Impossible de lancer le conteneur Nessus"
-    fi
-    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -e "\r[ $(color "OK" "32") ] $(color "Nessus" "32") installé avec succès Par Vincent."
+    function install_nessus_by_docker() {
+        echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Nessus" "32")..."
+
+        if ! command -v docker &> /dev/null; then
+            echo -e "\r[ $(color "Error" "31") ] Docker n'est pas installé. "
+            return 1
+        fi
+
+        if is_installedByDocker "nessus-managed"; then
+            echo -e "\r[ $(color "OK" "32") ] $(color "Nessus" "32") déjà installé (via Docker)."
+            return 0
+        fi
+        ARCH=$(uname -m)
+        case "$ARCH" in
+            x86_64) IMAGE="tenable/nessus:latest-oracle" ;;
+            aarch64) IMAGE="tenable/nessus:latest-arm" ;; # Cambia esto por la imagen correcta para ARM
+            *) echo -e "\r[ $(color "Error" "31") ] Architecture non supportée: $ARCH"; return 1 ;;
+        esac
+        if ! docker pull "$IMAGE" &> /dev/null; then
+            errorMaker "Impossible de télécharger l'image Nessus"
+            return 1
+        fi
+
+        echo -ne "\r[ $(color "..." "32") ] Lanzando el contenedor $(color "Nessus" "32")..."
+        if ! docker run --name "nessus-managed" -d -p 127.0.0.1:8834:8834 "$IMAGE" &> /dev/null; then
+            errorMaker "Impossible de lancer le conteneur Nessus"
+            return 1
+        fi
+
+        echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+        echo -e "\r[ $(color "OK" "32") ] $(color "Nessus" "32") installé avec succès."
+    }
+    install_nessus_by_docker
 
     
 }
@@ -573,7 +597,7 @@ pythonconf'
 #                                   Package Snap                                 #
 # ============================================================================== #
 function packageBySnap(){
-    # =========================== Vs Code
+    # =========================== Sublime Text
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Sublime Text" "32") via Snap..."
     if ! is_installedByDocker "code" &> /dev/null && command -v "code" &> /dev/null ; then
         sudo snap install --classic sublime-text > /dev/null 2>&1
