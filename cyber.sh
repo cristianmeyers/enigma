@@ -1,7 +1,5 @@
 #!/bin/bash
 
-clear
-
 # ============================================================================== #
 #                                   Functions                                    #
 # ============================================================================== #
@@ -184,7 +182,7 @@ function finished() {
                                                                 
 
     ' "36"
-    messages "46" "36" "Installation Complète par Cristian : $(echo -ne $(color "v1.4" "32")) (redemarrez votre session)" "left"
+    messages "46" "36" "Installation Complète : $(echo -ne $(color "v1.4" "32")) (redemarrez votre session)" "left"
     echo
 }
 function passwd() {
@@ -428,7 +426,7 @@ function packageByDocker(){
         errorMaker "Impossible de lancer le conteneur Spiderfoot"
     fi
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -e "\r[ $(color "OK" "32") ] $(color "spiderfoot" "32") installé avec succès via Docker par Raphael."
+    echo -e "\r[ $(color "OK" "32") ] $(color "spiderfoot" "32") installé avec succès via Docker."
 
     # =========================== DVWA
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "DVWA" "32") via Docker..."
@@ -441,8 +439,7 @@ function packageByDocker(){
         errorMaker "Impossible de lancer le conteneur DVWA"
     fi
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -e "\r[ $(color "OK" "32") ] $(color "DVWA" "32") installé avec succès Par Jérémy"
-
+    echo -e "\r[ $(color "OK" "32") ] $(color "DVWA" "32") installé avec succès"
     # =========================== Sysreptor
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Sysreptor" "32")..."
     if ! is_installedByDocker "sysreptor-app"; then
@@ -461,7 +458,6 @@ echo "Username: reptor" >> ~/sysreptor-credential.txt
 echo "Password: $password" >> ~/sysreptor-credential.txt
 sysrep
         # Reponses d'avance, les espaces vides representent "Enter"
-        # redirection vers les dev faite par cristian
         bash get-sysreptor.sh << repsysreptor > /dev/null 2>&1
 
 y
@@ -476,7 +472,7 @@ repsysreptor
 
         errorMaker "Impossible de lancer $(color "Sysreptor" "33")"
         echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-        echo -e "\r[ $(color "OK" "32") ] $(color "Sysreptor" "32") installé avec succès Par Vincent."
+        echo -e "\r[ $(color "OK" "32") ] $(color "Sysreptor" "32") installé avec succès."
     
     fi
     # =========================== Nessus
@@ -612,6 +608,7 @@ function packageBySnap(){
 #                                   MAIN FUNCTION                                #
 # ============================================================================== #
 function main() {
+    clear
     if ! requirement; then
         messages "31" "Le script ne doit pas être exécuté en tant que root !"
         return 1
@@ -668,11 +665,5 @@ dockersubshell
     rm "$Home/.password" &> /dev/null
     packageByPython
     finished
-    echo -e "installation de Sysreptor : $(color "Vincent" "32")."
-    echo -e "installation de Spiderfoot : $(color "Raphael" "32")."
-    echo -e "installation de DVWA : $(color "Jeremy" "32")."
-    echo -e "installation de Exegol et scripting général: $(color "Cristian" "32")."
 }
 main
-
-# nessus
