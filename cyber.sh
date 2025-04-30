@@ -346,6 +346,7 @@ function package() {
         nmap
         sed
         wireshark
+        netdiscover
         hydra
         sqlmap
         mysql-server
@@ -586,7 +587,16 @@ pythonconf'
         errorMaker "Impossible de créer l'alias exegol"
         source ~/.bash_aliases || echo "Redémarrez votre terminal pour activer l'alias $(color "Exegol" "32")."
     fi
-    echo -e "\r[ $(color 'OK' '32') ] $(color 'Exegol' '32') installé avec succès."     
+    echo -e "\r[ $(color 'OK' '32') ] $(color 'Exegol' '32') installé avec succès." 
+    # =========================== Sherlock
+    echo -ne "\r[ $(color '...' '32') ] Installation de $(color 'Sherlock' '32') via pipx..."
+    if ! is_installedByDocker "sherlock" &> /dev/null ; then
+        pipx install sherlock-project > /dev/null 2>&1
+        errorMaker "Impossible d'installer Sherlock"
+        pipx ensurepath > /dev/null 2>&1
+    fi
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+    echo -e "\r[ $(color 'OK' '32') ] $(color 'Sherlock' '32') installé avec succès."    
 }
 
 # ============================================================================== #
