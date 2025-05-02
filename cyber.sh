@@ -182,7 +182,7 @@ function finished() {
                                                                 
 
     ' "36"
-    messages "46" "36" "Installation Complète : $(echo -ne $(color "v1.4" "32")) (redemarrez votre session)" "left"
+    messages "46" "36" "Installation Complète : $(echo -ne $(color "v1.6" "32")) (redemarrez votre session)" "left"
     echo
 }
 function passwd() {
@@ -251,7 +251,7 @@ function is_installed() {
 function is_installedByDocker() {
     local program="$1"
     if docker ps -a --format "{{.Names}}" | grep -wq "$program" &> /dev/null; then
-        echo -e "[ $(color "OK" "32") ] $(color "$program" "32") est installé (via $(color "Docker" "34"))"
+        # echo -e "[ $(color "OK" "32") ] $(color "$program" "32") est installé (via $(color "Docker" "34"))"
         return 0
         
     else
@@ -340,8 +340,6 @@ dockerconf"
 # ============================================================================== #
 
 function package() {
-    messages "46" "46" "Installation de la suite cyber $(echo -ne $(color "Enigma" "30"))"
-    echo;echo
     local programs=(
         nmap
         sed
@@ -363,6 +361,8 @@ function package() {
         gparted
         tar
         coreutils
+        john
+        hashcat
     )
 
     for program in "${programs[@]}"; do
@@ -552,7 +552,7 @@ pythonconf'
     # =========================== SEToolKit
 
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "SEToolKit" "32") via Python..."
-    if ! is_installedByDocker "setoolkit"; then
+    if ! is_installedByDocker "setoolkit" > /dev/null 2>&1; then
         git clone https://github.com/trustedsec/social-engineer-toolkit/ $HOME/setoolkit/ &> /dev/null
         errorMaker "Impossible de cloner le dépôt SEToolKit"
         cd $HOME/setoolkit && sudo pip3 install -r requirements.txt > /dev/null 2>&1
@@ -576,18 +576,34 @@ pythonconf'
 
     # =========================== Installation d'Exegol
     echo -ne "\r[ $(color '...' '32') ] Installation de $(color 'Exegol' '32') via pipx..."
-    pipx install exegol --force > /dev/null 2>&1
-    errorMaker "Impossible d'installer Exegol"
+    if ! pipx install exegol --force > /dev/null 2>&1; then
+        errorMaker "Impossible d'installer Exegol"
+    fi
+    pipx ensurepath > /dev/null 2>&1 || errorMaker "Impossible d'ajouter le chemin pipx"
 
     # =========================== Configuration de l'alias Exegol
-    if ! grep -q "alias exegol=" ~/.bash_aliases 2>/dev/null; then
-        pipx ensurepath > /dev/null 2>&1
-        errorMaker "Impossible d'ajouter le chemin pipx à .bash_aliases"
-        echo "alias exegol='sudo -E $(which exegol)'" >> ~/.bash_aliases
-        errorMaker "Impossible de créer l'alias exegol"
-        source ~/.bash_aliases || echo "Redémarrez votre terminal pour activer l'alias $(color "Exegol" "32")."
+    if ! grep -q "^alias exegol=" ~/.bash_aliases 2>/dev/null; then
+        local exegol_path
+        exegol_path=$(which exegol)
+        if [ -z "$exegol_path" ]; then
+            echo -e "\r[ $(color 'Error' '31') ] Impossible de trouver le chemin de l'exécutable Exegol."
+        else
+            local alias_exegol="alias exegol='sudo -E $exegol_path'"
+            echo "$alias_exegol" >> ~/.bash_aliases
+            if grep -q "$alias_exegol" ~/.bash_aliases; then
+                echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+                echo -e "\r[ $(color 'OK' '32') ] $(color 'Exegol' '32') alias créé avec succès."
+            else
+                echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+                echo -e "\r[ $(color 'Error' '31') ] Échec de la création de l'alias $(color 'Exegol' '32')."
+            fi
+        fi
+        source ~/.bash_aliases || echo "Redémarrez votre terminal pour activer l'alias $(color 'Exegol' '32')."
+    else
+        echo -e "\r[ $(color 'OK' '32') ] L'alias $(color 'Exegol' '32') existe déjà."
     fi
-    echo -e "\r[ $(color 'OK' '32') ] $(color 'Exegol' '32') installé avec succès." 
+
+    echo -e "\r[ $(color 'OK' '32') ] $(color 'Exegol' '32') installé avec succès."
     # =========================== Sherlock
     echo -ne "\r[ $(color '...' '32') ] Installation de $(color 'Sherlock' '32') via pipx..."
     if ! is_installedByDocker "sherlock" &> /dev/null ; then
@@ -629,6 +645,7 @@ function main() {
     spinner "$updater_pid" "Mise à jour du système..."
     wait "$updater_pid"
     errorMaker "Échec de la mise à jour du système."; clear
+    messages "46" "46" "Installation de la suite cyber $(echo -ne $(color "Enigma" "30"))"
     install_program ca-certificates curl
     if ! check_dependencies; then
         exit 1
@@ -670,7 +687,8 @@ exit 0
 dockersubshell
 
     # Clean up
-    sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
+    sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove &> /dev/null
+    sudo DEBIAN_FRONTEND=noninteractive apt -y autoclean &> /dev/null
     rm "$HOME/.tempscript_clean.sh" &> /dev/null
     rm "$Home/.password" &> /dev/null
     packageByPython
