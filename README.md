@@ -138,7 +138,6 @@ Ce projet est sous licence MIT. Consultez le fichier [LICENSE](LICENSE) pour plu
 ## **Auteur**
 
 - **Cristian** : Créateur principal du script.
-- Contributions spéciales : Jérémy, Vincent.
 
 Si vous avez des questions ou des suggestions, n'hésitez pas à ouvrir une issue ou à me contacter directement.
 
