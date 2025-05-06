@@ -737,7 +737,7 @@ function uninstall() {
     local critical_packages=(
         coreutils apt utils systemd sudo bash mount tar dpkg
         debianutils sed grep gzip findutils login passwd perl-base
-        libc-bin dash diffutils
+        libc-bin dash diffutils openssl
     )
 
     # Packages to uninstall
@@ -773,8 +773,16 @@ function uninstall() {
     
     for container in "${docker_containers[@]}"; do
         if docker ps -a | grep -q "$container" &> /dev/null; then
+            echo -ne "[ $(color "UNINSTALLING" "31") ] $container..."
             docker stop "$container" &> /dev/null
             docker rm "$container" &> /dev/null
+            if [ $? -eq 0 ]; then
+                echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')\r"
+                echo -e "[ $(color "OK" "32") ] $container successfully removed"
+            else
+                echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')\r"
+                echo -e "[ $(color "ERROR" "31") ] Failed to remove $container"
+            fi
         fi
     done
 
@@ -784,7 +792,15 @@ function uninstall() {
     if command -v pipx &> /dev/null; then
         for tool in "${python_tools[@]}"; do
             if pipx list | grep -q "$tool" &> /dev/null; then
+                echo -ne "[ $(color "UNINSTALLING" "31") ] $tool..."
                 pipx uninstall "$tool" &> /dev/null
+                if [ $? -eq 0 ]; then
+                    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')\r"
+                    echo -e "[ $(color "OK" "32") ] $tool successfully removed"
+                else
+                    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')\r"
+                    echo -e "[ $(color "ERROR" "31") ] Failed to remove $tool"
+                fi
             fi
         done
     fi
