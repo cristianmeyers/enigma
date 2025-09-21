@@ -1,5 +1,7 @@
 #!/bin/bash
 
+clear
+
 # ============================================================================== #
 #                                   Functions                                    #
 # ============================================================================== #
@@ -182,41 +184,42 @@ function finished() {
                                                                 
 
     ' "36"
-    messages "46" "36" "Installation Complète : $(echo -ne $(color "v1.6" "32")) (redemarrez votre session)" "left"
+    messages "46" "36" "Installation Complète par Cristian : $(echo -ne $(color "v1.4" "32")) (redemarrez votre session)" "left"
     echo
 }
-function setup_sudo_nopass() {
-    local USER
-    USER=$(whoami)
+function passwd() {
+    PASSWORD_FILE="$HOME/.password"
 
-    if sudo -n grep -q "^$USER.*ALL=(ALL).*NOPASSWD: ALL" /etc/sudoers 2>/dev/null; then
-        echo "[ $(color "OK" "32") ] $USER possède déjà les privilèges sudo sans mot de passe."
-        return 0
-    fi
-
-    read -s -p "$(color "Entrez votre mot de passe sudo : " "32")" PASSWORD
-    echo
-    # Validar la contraseña usando sudo
-    if echo "$PASSWORD" | sudo -S -v &>/dev/null; then
-        export PASSWORD
+    if [ -f "$PASSWORD_FILE" ]; then
+        export PASSWORD=$(cat "$PASSWORD_FILE")
     else
-        echo "[ $(color "Error" "31") ] Erreur d'authentification."
-        exit 1
-    fi
-    if printf "%s\n" "$PASSWORD" | sudo -S grep -q "^$USER.*ALL=(ALL).*NOPASSWD: ALL" /etc/sudoers; then
-        echo "[ $(color "OK" "32") ] $USER possède déjà les privilèges sudo sans mot de passe."
-    else
-        printf "%s\n" "$PASSWORD" | sudo -S bash -c "echo '$USER ALL=(ALL) NOPASSWD: ALL' | tee -a /etc/sudoers > /dev/null"
-        if [ $? -eq 0 ]; then
-            echo "[ $(color "OK" "32") ] L'utilisateur $(color "$USER" "32") n'a plus besoin d'utiliser le mot de passe sudo."
+        read -s -p "$(color "Entrez votre mot de passe sudo : " "32")" PASSWORD
+        echo
+        if echo "$PASSWORD" | sudo -S -v &> /dev/null; then
+            echo "$PASSWORD" > "$PASSWORD_FILE"
+            chmod 600 "$PASSWORD_FILE"
+            export PASSWORD
+            echo "[ $(color "OK" "32") ] Mot de passe sauvegardé dans $PASSWORD_FILE."
         else
-            echo "[ $(color "Error" "31") ] Modification Visudo échouée."
+            echo "[ $(color "Error" "31") ] Erreur d'authentification."
             exit 1
         fi
     fi
 }
+function no_passwd() {
+    local USER=$(whoami)
 
-
+    if printf "%s\n" "$PASSWORD" | sudo -S cat /etc/sudoers | grep -q "^$USER.*ALL=(ALL).*NOPASSWD: ALL"; then
+        echo "[ $(color "OK" "32") ] $USER possède déjà les privilèges sudo sans mot de passe."
+    else
+        printf "%s\n" "$PASSWORD" | sudo -S bash -c "echo '$USER ALL=(ALL) NOPASSWD: ALL' | tee -a /etc/sudoers > /dev/null"
+        if [ $? -eq 0 ]; then
+            echo "[ $(color "OK" "32") ] L'utilisateur $(color "$USER" "32") n'a plus besoin d'utiliser le mot de passe."
+        else
+            echo "[ $(color "Error" "31") ] Modification Visudo échouée."
+        fi
+    fi
+}
 function is_installed() {
     local program="$1"
 
@@ -250,7 +253,7 @@ function is_installed() {
 function is_installedByDocker() {
     local program="$1"
     if docker ps -a --format "{{.Names}}" | grep -wq "$program" &> /dev/null; then
-        # echo -e "[ $(color "OK" "32") ] $(color "$program" "32") est installé (via $(color "Docker" "34"))"
+        echo -e "[ $(color "OK" "32") ] $(color "$program" "32") est installé (via $(color "Docker" "34"))"
         return 0
         
     else
@@ -338,68 +341,38 @@ dockerconf"
 #                                   Package suite                                #
 # ============================================================================== #
 
+function package() {
+    messages "46" "46" "Installation de la suite cyber $(echo -ne $(color "Enigma" "30"))"
+    echo;echo
+    local programs=(
+        nmap
+        sed
+        wireshark
+        hydra
+        sqlmap
+        mysql-server
+        snapd
+        geoip-bin
+        sublist3r
+        nikto
+        dsniff
+        hping3
+        macchanger
+        git
+        openssl
+        uuid-runtime
+        gparted
+        tar
+        coreutils
+    )
 
-packages=(
-    nmap
-    sed
-    wireshark
-    netdiscover
-    hydra
-    sqlmap
-    mysql-server
-    snapd
-    geoip-bin
-    sublist3r
-    nikto
-    dsniff
-    hping3
-    macchanger
-    git
-    openssl
-    uuid-runtime
-    gparted
-    tar
-    coreutils
-    john
-    hashcat
-)
-
-
+    for program in "${programs[@]}"; do
+        install_program "$program"
+    done
+}
 # ============================================================================== #
 #                                   Package Docker                               #
 # ============================================================================== #
-function install_nessus_by_docker() {
-    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Nessus" "32")..."
-
-    if ! command -v docker &> /dev/null; then
-        echo -e "\r[ $(color "Error" "31") ] Docker n'est pas installé. "
-        return 1
-    fi
-
-    if is_installedByDocker "nessus-managed"; then
-        echo -e "\r[ $(color "OK" "32") ] $(color "Nessus" "32") déjà installé (via Docker)."
-        return 0
-    fi
-    ARCH=$(uname -m)
-    case "$ARCH" in
-        x86_64) IMAGE="tenable/nessus:latest-oracle" ;;
-        aarch64) IMAGE="tenable/nessus:latest-arm" ;; # Cambia esto por la imagen correcta para ARM
-        *) echo -e "\r[ $(color "Error" "31") ] Architecture non supportée: $ARCH"; return 1 ;;
-    esac
-    if ! docker pull "$IMAGE" &> /dev/null; then
-        errorMaker "Impossible de télécharger l'image Nessus"
-        return 1
-    fi
-
-    echo -ne "\r[ $(color "..." "32") ] Lanzando el contenedor $(color "Nessus" "32")..."
-    if ! docker run --name "nessus-managed" -d -p 127.0.0.1:8834:8834 "$IMAGE" &> /dev/null; then
-        errorMaker "Impossible de lancer le conteneur Nessus"
-        return 1
-    fi
-
-    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -e "\r[ $(color "OK" "32") ] $(color "Nessus" "32") installé avec succès."
-}
 
 function install_metasploit_by_docker() {
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Metasploit" "32") via Docker..."
@@ -425,32 +398,8 @@ function install_metasploit_by_docker() {
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
     echo -e "\r[ $(color "OK" "32") ] $(color "Metasploit" "32") installé avec succès via Docker."
 }
-function install_dvwa_by_docker(){
-    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "DVWA" "32") via Docker..."
-    local arch=$(uname -m)
-    case $arch in
-        x86_64)
-            image="vulnerables/web-dvwa:latest"
-            ;;
-        aarch64)
-            image="vulnerables/web-dvwa:latest-arm"
-            ;;
-        *)
-            echo -e "\r[ $(color "Error" "31") ] Architecture non supportée: $arch"
-            return 1
-            ;;
-    esac
-    if ! is_installedByDocker "dvwa-dvwa-1"; then
-        docker pull vulnerables/web-dvwa:latest &> /dev/null
-        errorMaker "Impossible de télécharger l'image DVWA"
-        docker run --name dvwa-dvwa-1 -d -p 80:80 vulnerables/web-dvwa:latest &> /dev/null
-        errorMaker "Impossible de lancer le conteneur DVWA"
-    fi
-    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -e "\r[ $(color "OK" "32") ] $(color "DVWA" "32") installé avec succès via Docker."
-}
 # =========================== Armitage
-function install_armitage_by_docker(){
+function installArmitage(){
 
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Armitage" "32") via Docker..."
     if ! is_installedByDocker "armitage"; then
@@ -479,7 +428,7 @@ function packageByDocker(){
         errorMaker "Impossible de lancer le conteneur Spiderfoot"
     fi
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -e "\r[ $(color "OK" "32") ] $(color "spiderfoot" "32") installé avec succès via Docker."
+    echo -e "\r[ $(color "OK" "32") ] $(color "spiderfoot" "32") installé avec succès via Docker par Raphael."
 
     # =========================== DVWA
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "DVWA" "32") via Docker..."
@@ -492,7 +441,8 @@ function packageByDocker(){
         errorMaker "Impossible de lancer le conteneur DVWA"
     fi
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -e "\r[ $(color "OK" "32") ] $(color "DVWA" "32") installé avec succès"
+    echo -e "\r[ $(color "OK" "32") ] $(color "DVWA" "32") installé avec succès Par Jérémy"
+
     # =========================== Sysreptor
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Sysreptor" "32")..."
     if ! is_installedByDocker "sysreptor-app"; then
@@ -511,6 +461,7 @@ echo "Username: reptor" >> ~/sysreptor-credential.txt
 echo "Password: $password" >> ~/sysreptor-credential.txt
 sysrep
         # Reponses d'avance, les espaces vides representent "Enter"
+        # redirection vers les dev faite par cristian
         bash get-sysreptor.sh << repsysreptor > /dev/null 2>&1
 
 y
@@ -525,12 +476,19 @@ repsysreptor
 
         errorMaker "Impossible de lancer $(color "Sysreptor" "33")"
         echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-        echo -e "\r[ $(color "OK" "32") ] $(color "Sysreptor" "32") installé avec succès."
+        echo -e "\r[ $(color "OK" "32") ] $(color "Sysreptor" "32") installé avec succès Par Vincent."
     
     fi
-
     # =========================== Nessus
-    install_nessus_by_docker
+    echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Nessus" "32")..."
+    if ! is_installedByDocker "nessus-managed"; then
+        docker pull tenable/nessus:latest-oracle &> /dev/null
+        errorMaker "Impossible de télécharger l'image Nessus"
+        docker run --name "nessus-managed" -d -p 127.0.0.1:8834:8834 tenable/nessus:latest-oracle &> /dev/null
+        errorMaker "Impossible de lancer le conteneur Nessus"
+    fi
+    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
+    echo -e "\r[ $(color "OK" "32") ] $(color "Nessus" "32") installé avec succès Par Vincent."
 
     
 }
@@ -538,7 +496,7 @@ repsysreptor
 #                                   Package Python                               #
 # ============================================================================== #
 function packageByPython(){
-    local programs=(
+    programs=(
         python3
         python3-argcomplete
         python3-pip
@@ -573,7 +531,7 @@ pythonconf'
     # =========================== SEToolKit
 
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "SEToolKit" "32") via Python..."
-    if ! is_installedByDocker "setoolkit" > /dev/null 2>&1; then
+    if ! is_installedByDocker "setoolkit"; then
         git clone https://github.com/trustedsec/social-engineer-toolkit/ $HOME/setoolkit/ &> /dev/null
         errorMaker "Impossible de cloner le dépôt SEToolKit"
         cd $HOME/setoolkit && sudo pip3 install -r requirements.txt > /dev/null 2>&1
@@ -597,55 +555,30 @@ pythonconf'
 
     # =========================== Installation d'Exegol
     echo -ne "\r[ $(color '...' '32') ] Installation de $(color 'Exegol' '32') via pipx..."
-    if ! pipx install exegol --force > /dev/null 2>&1; then
-        errorMaker "Impossible d'installer Exegol"
-    fi
-    pipx ensurepath > /dev/null 2>&1 || errorMaker "Impossible d'ajouter le chemin pipx"
+    pipx install exegol --force > /dev/null 2>&1
+    errorMaker "Impossible d'installer Exegol"
 
     # =========================== Configuration de l'alias Exegol
-    if ! grep -q "^alias exegol=" ~/.bash_aliases 2>/dev/null; then
-        local exegol_path
-        exegol_path=$(which exegol)
-        if [ -z "$exegol_path" ]; then
-            echo -e "\r[ $(color 'Error' '31') ] Impossible de trouver le chemin de l'exécutable Exegol."
-        else
-            local alias_exegol="alias exegol='sudo -E $exegol_path'"
-            echo "$alias_exegol" >> ~/.bash_aliases
-            if grep -q "$alias_exegol" ~/.bash_aliases; then
-                echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-                echo -e "\r[ $(color 'OK' '32') ] $(color 'Exegol' '32') alias créé avec succès."
-            else
-                echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-                echo -e "\r[ $(color 'Error' '31') ] Échec de la création de l'alias $(color 'Exegol' '32')."
-            fi
-        fi
-        source ~/.bash_aliases || echo "Redémarrez votre terminal pour activer l'alias $(color 'Exegol' '32')."
-    else
-        echo -e "\r[ $(color 'OK' '32') ] L'alias $(color 'Exegol' '32') existe déjà."
-    fi
-
-    echo -e "\r[ $(color 'OK' '32') ] $(color 'Exegol' '32') installé avec succès."
-    # =========================== Sherlock
-    echo -ne "\r[ $(color '...' '32') ] Installation de $(color 'Sherlock' '32') via pipx..."
-    if ! is_installedByDocker "sherlock" &> /dev/null ; then
-        pipx install sherlock-project > /dev/null 2>&1
-        errorMaker "Impossible d'installer Sherlock"
+    if ! grep -q "alias exegol=" ~/.bash_aliases 2>/dev/null; then
         pipx ensurepath > /dev/null 2>&1
+        errorMaker "Impossible d'ajouter le chemin pipx à .bash_aliases"
+        echo "alias exegol='sudo -E $(which exegol)'" >> ~/.bash_aliases
+        errorMaker "Impossible de créer l'alias exegol"
+        source ~/.bash_aliases || echo "Redémarrez votre terminal pour activer l'alias $(color "Exegol" "32")."
     fi
-    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
-    echo -e "\r[ $(color 'OK' '32') ] $(color 'Sherlock' '32') installé avec succès."    
+    echo -e "\r[ $(color 'OK' '32') ] $(color 'Exegol' '32') installé avec succès."     
 }
 
 # ============================================================================== #
 #                                   Package Snap                                 #
 # ============================================================================== #
 function packageBySnap(){
-    # =========================== Sublime Text
+    # =========================== Vs Code
     echo -ne "\r[ $(color "..." "32") ] Installation de $(color "Sublime Text" "32") via Snap..."
-    if ! is_installedByDocker "code" &> /dev/null && command -v "code" &> /dev/null ; then
-        sudo snap install --classic sublime-text > /dev/null 2>&1
-        errorMaker "Impossible d'installer Vs Code"
+    if ! is_installedByDocker "code" && command -v "code" &> /dev/null; then
+        sudo snap install --classic sublime-text > /dev/null 2>&1 || errorMaker "Impossible d'installer Sublime Text"
     fi
+
     echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')"
     echo -e "\r[ $(color "OK" "32") ] $(color "Sublime Text" "32") installé avec succès."
 
@@ -655,39 +588,30 @@ function packageBySnap(){
 #                                   MAIN FUNCTION                                #
 # ============================================================================== #
 function main() {
-    clear
     if ! requirement; then
         messages "31" "Le script ne doit pas être exécuté en tant que root !"
         return 1
     fi
-    setup_sudo_nopass
+    passwd;no_passwd
     updater &
     updater_pid=$!
     spinner "$updater_pid" "Mise à jour du système..."
     wait "$updater_pid"
-    errorMaker "Échec de la mise à jour du système.";
-    messages "46" "46" "Installation de la suite cyber $(echo -ne $(color "Enigma" "30"))" ; echo
+    errorMaker "Échec de la mise à jour du système."; clear
     install_program ca-certificates curl
     if ! check_dependencies; then
         exit 1
     fi
-
-    # ============================= Install packages
-    for package in "${packages[@]}"; do
-        install_program "$package"
-    done
-
-
+    package
     if ! is_installed mysql; then
         install_program "mysql-server"
         if [ $? -ne 0 ]; then
             install_command "mariadb-server"
         fi
     fi
-    # ============================= Install Snap
     packageBySnap
 
-    # ============================= Docker install and configuration
+    # Docker install and configuration
     if command -v realpath &> /dev/null; then
         tempfile=$(realpath "$0")
     elif command -v readlink &> /dev/null; then
@@ -696,7 +620,7 @@ function main() {
         errorMaker "Impossible de trouver le chemin absolu du script."
         exit 1
     fi
-    # ============================= Copy of the script without `main`
+    # Copy of the script without `main`
     cp "$tempfile" "$HOME/.tempscript.sh" &> /dev/null 
     if grep -q "^main$" "$HOME/.tempscript.sh"; then
         sed '/^main$/d' "$HOME/.tempscript.sh" > "$HOME/.tempscript_clean.sh"
@@ -706,7 +630,7 @@ function main() {
     chmod +x "$HOME/.tempscript_clean.sh" &> /dev/null
     rm "$HOME/.tempscript.sh" &> /dev/null
 
-    # ============================= subshell
+    # subshell
     install_docker
     newgrp docker << dockersubshell
 source "$HOME/.tempscript_clean.sh"
@@ -714,117 +638,17 @@ packageByDocker
 exit 0
 dockersubshell
 
-    # ============================= Clean up
-    sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove &> /dev/null
-    sudo DEBIAN_FRONTEND=noninteractive apt -y autoclean &> /dev/null
+    # Clean up
+    sudo DEBIAN_FRONTEND=noninteractive apt -y autoremove
     rm "$HOME/.tempscript_clean.sh" &> /dev/null
+    rm "$Home/.password" &> /dev/null
     packageByPython
     finished
+    echo -e "installation de Sysreptor : $(color "Vincent" "32")."
+    echo -e "installation de Spiderfoot : $(color "Raphael" "32")."
+    echo -e "installation de DVWA : $(color "Jeremy" "32")."
+    echo -e "installation de Exegol et scripting général: $(color "Cristian" "32")."
 }
-
-
-# ============================================================================== #
-#                                   Uninstall                                    #
-# ============================================================================== #
-
-function uninstall() {
-    if [ "$(id -u)" == 0 ]; then
-        echo "This script should not be run as root."
-        exit 1
-    fi
-
-    # Critical packages to exclude
-    local critical_packages=(
-        coreutils apt utils systemd sudo bash mount tar dpkg
-        debianutils sed grep gzip findutils login passwd perl-base
-        libc-bin dash diffutils openssl
-    )
-
-    # Packages to uninstall
-
-
-    messages "31" "Uninstalling cyber suite $(color "Enigma" "30")"; echo
-
-    # Package uninstallation
-    for package in "${packages[@]}"; do
-        if [[ " ${critical_packages[@]} " =~ " ${package} " ]]; then
-            continue
-        fi
-
-        if command -v "$package" &> /dev/null; then
-            echo -ne "[ $(color "UNINSTALLING" "31") ] $package..."
-            sudo apt-get remove --purge -y "$package" &> /dev/null
-            if [ $? -eq 0 ]; then
-                echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')\r"
-                echo -e "[ $(color "OK" "32") ] $package successfully removed"
-            else
-                echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')\r"
-                echo -e "[ $(color "ERROR" "31") ] Failed to remove $package"
-            fi
-        fi
-    done
-
-    # Docker cleanup
-    local docker_containers=(
-        nessus-managed metasploit-framework dvwa-dvwa-1 
-        armitage spiderfoot sysreptor-app  sysreptor-caddy sysreptor-db 
-        dvwa-db-1
-    )
-    
-    for container in "${docker_containers[@]}"; do
-        if docker ps -a | grep -q "$container" &> /dev/null; then
-            echo -ne "[ $(color "UNINSTALLING" "31") ] $container..."
-            docker stop "$container" &> /dev/null
-            docker rm "$container" &> /dev/null
-            if [ $? -eq 0 ]; then
-                echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')\r"
-                echo -e "[ $(color "OK" "32") ] $container successfully removed"
-            else
-                echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')\r"
-                echo -e "[ $(color "ERROR" "31") ] Failed to remove $container"
-            fi
-        fi
-    done
-
-    # Python tools cleanup
-    local python_tools=(setoolkit exegol sherlock)
-    
-    if command -v pipx &> /dev/null; then
-        for tool in "${python_tools[@]}"; do
-            if pipx list | grep -q "$tool" &> /dev/null; then
-                echo -ne "[ $(color "UNINSTALLING" "31") ] $tool..."
-                pipx uninstall "$tool" &> /dev/null
-                if [ $? -eq 0 ]; then
-                    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')\r"
-                    echo -e "[ $(color "OK" "32") ] $tool successfully removed"
-                else
-                    echo -ne "\r$(printf '%*s' ${COLUMNS:-$(tput cols)} '')\r"
-                    echo -e "[ $(color "ERROR" "31") ] Failed to remove $tool"
-                fi
-            fi
-        done
-    fi
-
-    # Environment cleanup
-    sudo rm -rf /usr/local/share/.venv &> /dev/null
-    sudo rm -f /etc/profile.d/python3.sh &> /dev/null
-    rm -rf "$HOME/setoolkit" "$HOME/DVWA" "$HOME/spiderfoot" &> /dev/null
-    rm -f "$HOME/.tempscript_clean.sh" "$HOME/.password" &> /dev/null
-
-    # System cleanup
-    sudo apt autoremove -y &> /dev/null
-    sudo apt autoclean -y &> /dev/null
-
-    # Final message
-    echo -e "\n$(color 'UNINSTALLATION COMPLETED!' '32')"
-    echo "Some residual files might remain in:"
-    echo -e "$(color "/etc/docker /var/lib/docker /home/$USER/.docker" '33')\n"
-}
-
-if [[ "$1" == "--uninstall" || "$1" == "-u" ]]; then
-    uninstall
-    exit 0
-fi
-
-
 main
+
+# nessus
