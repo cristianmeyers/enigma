@@ -1,146 +1,160 @@
-# **Installation Suite Cyber (Enigma)**
+# 🔐 Enigma — Installateur automatisé de suite cybersécurité
 
-![GitHub](https://img.shields.io/badge/Version-v1.1-blue) ![License](https://img.shields.io/badge/License-MIT-green)
-
-Ce script automatise l'installation d'un ensemble complet d'outils de cybersécurité, développement et administration système sur des distributions Linux basées sur Debian, Red Hat, ou Arch. Il est conçu pour les professionnels de la sécurité, les développeurs et les administrateurs système.
-
-## **Table des matières**
-
-1. [Description](#description)
-2. [Fonctionnalités principales](#fonctionnalités-principales)
-3. [Prérequis](#prérequis)
-4. [Installation](#installation)
-5. [Programmes installés](#programmes-installés)
-6. [Contribution](#contribution)
-7. [Licence](#licence)
+> Script Bash automatisé pour déployer un toolkit complet de cybersécurité sur Linux — inclut des outils offensifs, des conteneurs Docker, des environnements Python et des utilitaires d’accès à distance.
 
 ---
 
-## **Description**
+## 📋 Aperçu
 
-Ce script configure un environnement complet pour les tests de pénétration, les audits de sécurité et le développement. Il installe une variété d'outils via le gestionnaire de paquets du système, Docker, Python (`pip`), et Snap. Le script est modulaire et peut être exécuté sans privilèges root.
+**Enigma** est un script d’installation entièrement automatisé qui configure un environnement prêt à l’emploi pour le pentesting et la cybersécurité sur tout système Linux basé sur Debian/Ubuntu. Il gère l’installation des paquets, le déploiement de conteneurs Docker, les environnements virtuels Python et la configuration système — le tout en une seule commande.
 
----
-
-## **Fonctionnalités principales**
-
-- **Automatisation complète** : Installation de tous les outils nécessaires sans intervention manuelle.
-- **Support multi-distribution** : Compatible avec Ubuntu, Debian, Fedora, CentOS, Arch, etc.
-- **Gestion des dépendances** : Vérifie et installe les dépendances requises avant de procéder.
-- **Configuration de Docker** : Installe et configure Docker pour exécuter des conteneurs spécifiques.
-- **Personnalisation** : Les programmes peuvent être ajoutés ou supprimés facilement dans le script.
-- **Interface utilisateur intuitive** : Messages colorés et animations pour suivre l'avancement.
+Il supporte également un mode **désinstallation** pour supprimer tout ce qu’il a déployé.
 
 ---
 
-## **Prérequis**
+## 🏗️ Architecture
 
-Avant d'exécuter ce script, assurez-vous que votre système respecte les conditions suivantes :
-
-1. **Système d'exploitation** :
-   - Une distribution Linux basée sur Debian, Red Hat ou Arch.
-2. **Accès Internet** :
-   - Le script télécharge des paquets et des images Docker depuis Internet.
-3. **Droits d'administration** :
-   - Vous devez avoir accès à un compte utilisateur avec des privilèges `sudo`.
-4. **Espace disque suffisant** :
-   - Assurez-vous d'avoir au moins 10 Go d'espace libre pour installer tous les outils.
+```
+enigma/
+├── cyber.sh          # Script principal d’installation
+└── README.md
+```
 
 ---
 
-## **Installation**
+## ⚙️ Contenu de l’installation
 
-1. **Télécharger le script** :
+### 📦 Paquets système (via APT)
 
-   ```bash
-   curl -fsSL https://github.com/cristianmeyers/enigma/blob/main/cyber.sh -o install.sh
-   ```
+| Outil                | Description                              |
+| -------------------- | ---------------------------------------- |
+| `nmap`               | Scanner réseau et cartographie des ports |
+| `wireshark`          | Analyseur de protocoles réseau           |
+| `hydra`              | Brute-force de mots de passe en ligne    |
+| `sqlmap`             | Outil automatisé d’injection SQL         |
+| `nikto`              | Scanner de vulnérabilité de serveurs web |
+| `hping3`             | Générateur de paquets TCP/IP             |
+| `dsniff`             | Sniffing réseau et outils MITM           |
+| `macchanger`         | Changement d’adresse MAC                 |
+| `sublist3r`          | Énumération de sous-domaines             |
+| `geoip-bin`          | Géolocalisation d’IP                     |
+| `mysql-server`       | Serveur de base de données relationnelle |
+| `openssl`            | Toolkit SSL/TLS                          |
+| `git`, `curl`, `tar` | Utilitaires système essentiels           |
 
-2. **Rendre le script exécutable** :
+### 🐳 Conteneurs Docker
 
-   ```bash
-   chmod +x cyber.sh
-   ```
+| Conteneur              | Description                                   | Port   |
+| ---------------------- | --------------------------------------------- | ------ |
+| `metasploit-framework` | Framework d’exploitation                      | `8080` |
+| `nessus`               | Scanner de vulnérabilité                      | `8834` |
+| `DVWA`                 | Damn Vulnerable Web Application (laboratoire) | —      |
+| `spiderfoot`           | Outil d’automatisation OSINT                  | —      |
+| `sysreptor`            | Plateforme de génération de rapports pentest  | —      |
 
-3. **Exécuter le script** :
+### 🐍 Outils Python
 
-   ```bash
-   ./cyber.sh
-   ```
+| Outil       | Description                          | Méthode |
+| ----------- | ------------------------------------ | ------- |
+| `SEToolKit` | Framework d’ingénierie sociale       | pip     |
+| `Exegol`    | Gestionnaire d’environnement pentest | pipx    |
 
-4. **Suivre les instructions** :
-   - Le script vous guidera tout au long du processus. Il peut demander votre mot de passe `sudo` et certaines configurations supplémentaires.
+### Snap
 
----
-
-## **Programmes installés**
-
-### **Outils installés via le gestionnaire de paquets**
-
-- **nmap** : Scanner de réseau et de ports.
-- **wireshark** : Analyseur de trafic réseau.
-- **hydra** : Outil de force brute pour tester les authentifications.
-- **sqlmap** : Exploitation de vulnérabilités SQL.
-- **mysql-server** : Serveur de base de données MySQL.
-- **snapd** : Gestionnaire de paquets Snap.
-- **geoip-bin** : Utilitaire de géolocalisation par IP.
-- **sublist3r** : Enumération de sous-domaines.
-- **nikto** : Scanner de vulnérabilités web.
-- **dsniff** : Ensemble d'outils pour l'audit réseau.
-- **hping3** : Outil de test réseau et d'attaques simulées.
-- **macchanger** : Changement d'adresse MAC.
-- **git** : Système de contrôle de versions.
-- **openssl** : Outils cryptographiques.
-- **uuid-runtime** : Générateur d'identifiants uniques universels (UUID).
-- **gparted** : Éditeur de partitions de disque.
-- **tar** : Compression et décompression de fichiers.
-- **coreutils** : Utilitaires de base du système.
-
-### **Outils installés via Docker**
-
-- **spiderfoot** : Outil d'intelligence sur les sources ouvertes (OSINT).
-- **DVWA (Damn Vulnerable Web Application)** : Application web vulnérable pour les tests de sécurité.
-- **Sysreptor** : Outil pour les audits de conformité réglementaire.
-- **Nessus** : Scanner avancé de vulnérabilités.
-
-### **Outils installés via Python**
-
-- **python3** : Environnement Python 3.
-- **pipx** : Installation isolée d'applications Python.
-- **SEToolKit (Social Engineer Toolkit)** : Ensemble d'outils pour l'ingénierie sociale.
-- **Exegol** : Environnement personnalisé pour les tests de pénétration.
-
-### **Outils installés via Snap**
-
-- **Metasploit Framework** : Plateforme pour le développement et l'exécution d'exploits.
+| Outil          | Description            |
+| -------------- | ---------------------- |
+| `Sublime Text` | Éditeur de code source |
 
 ---
 
-## **Contribution**
+## 🚀 Démarrage
 
-Les contributions sont les bienvenues ! Si vous souhaitez améliorer ce script, veuillez suivre ces étapes :
+### Prérequis
 
-1. **Fork** ce dépôt.
-2. Créez une branche pour vos modifications :
-   ```bash
-   git checkout -b feature/nom-de-votre-feature
-   ```
-3. Soumettez une pull request avec une description détaillée de vos modifications.
+- Distribution Linux basée sur Debian / Ubuntu
+- Compte utilisateur **non-root** avec accès `sudo`
+- Connexion internet
+
+### Utilisation
+
+```bash
+# Cloner le dépôt
+git clone https://github.com/your-username/enigma.git
+cd enigma
+
+# Rendre le script exécutable
+chmod +x enigma.sh
+
+# Lancer l’installation
+./enigma.sh
+```
+
+> ⚠️ **Ne pas exécuter en root.** Le script demandera votre mot de passe sudo et configurera sudo sans mot de passe automatiquement pendant l’installation.
+
+### Désinstallation
+
+```bash
+./enigma.sh --uninstall
+# ou
+./enigma.sh -u
+```
+
+Le mode désinstallation supprime tous les paquets installés, conteneurs Docker, outils Python et nettoie les fichiers de configuration d’environnement.
 
 ---
 
-## **Licence**
+## 🔧 Fonctionnement
 
-Ce projet est sous licence MIT. Consultez le fichier [LICENSE](LICENSE) pour plus de détails.
+Le script est structuré autour de fonctions modulaires indépendantes :
+
+```
+main()
+├── passwd / no_passwd     → Configuration de l’authentification sudo
+├── updater()              → Mise à jour système (apt / dnf / yum / pacman...)
+├── package()              → Installation de paquets APT
+├── packageBySnap()        → Installation via Snap
+├── install_docker()       → Installation et configuration du moteur Docker
+├── packageByDocker()      → Déploiement des conteneurs Docker
+│   ├── Metasploit
+│   ├── Spiderfoot
+│   ├── DVWA
+│   ├── Sysreptor
+│   └── Nessus
+└── packageByPython()      → Environnements Python venv + outils pip/pipx
+    ├── SEToolKit
+    └── Exegol
+```
+
+### Fonctions intelligentes
+
+- **Support multi-distribution** — Détecte et utilise le gestionnaire de paquets disponible (`apt`, `dnf`, `yum`, `zypper`, `pacman`, `microdnf`)
+- **Installation idempotente** — Chaque outil vérifie s’il est déjà installé avant de tenter l’installation (via `PATH`, `dpkg`, `snap`, `flatpak`, `AppImage` ou `Docker`)
+- **Sous-shell Docker** — Les permissions du groupe Docker sont appliquées en cours de script via `newgrp` pour éviter de relancer une session complète
+- **Indicateur animé** — Retour visuel pendant les opérations longues
+- **Nettoyage automatique** — Suppression des fichiers temporaires et du mot de passe sudo en cache après l’installation
 
 ---
 
-## **Auteur**
+## 📋 Compatibilité
 
-- **Cristian** : Créateur principal du script.
-
-Si vous avez des questions ou des suggestions, n'hésitez pas à ouvrir une issue ou à me contacter directement.
+| Distribution     | Gestionnaire de paquets | Supporté |
+| ---------------- | ----------------------- | -------- |
+| Ubuntu / Debian  | `apt-get`               | ✅       |
+| Fedora           | `dnf`                   | ✅       |
+| RHEL / CentOS    | `yum`                   | ✅       |
+| openSUSE         | `zypper`                | ✅       |
+| Arch Linux       | `pacman`                | ✅       |
+| Alpine (minimal) | `microdnf`              | ✅       |
 
 ---
 
-Merci d'utiliser ce script ! 🚀
+## ⚠️ Avis légal
+
+Cette suite est destinée à **des tests de sécurité autorisés, à l’enseignement et à des environnements de laboratoire contrôlés**.
+L’utilisation de ces outils sur des systèmes sans autorisation explicite est illégale. Les auteurs ne sont pas responsables de toute mauvaise utilisation.
+
+---
+
+## 📄 Licence
+
+MIT

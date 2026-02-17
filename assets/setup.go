@@ -4,113 +4,178 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/user"
 	"strings"
 )
 
-func color(text string, colorCode string) string {
-	return fmt.Sprintf("\033[%sm%s\033[0m", colorCode, text)
+// ========================== LISTA DE PROGRAMAS ==========================
+var systemPackages = []string{
+	"nmap", "sed", "wireshark", "hydra", "sqlmap",
+	"mysql-server", "mariadb-server", "snapd", "geoip-bin", "sublist3r",
+	"nikto", "dsniff", "hping3", "macchanger", "git",
+	"openssl", "uuid-runtime", "gparted", "tar", "coreutils",
+	"ca-certificates", "curl", "python3", "python3-argcomplete",
+	"python3-pip", "python3-full", "pipx",
 }
 
-func message(text string, colorCode string) string {
-	lenText := len(text)
-	border := lenText + 10
-	padding := (border - lenText) / 2
-
-	paddingLeft := strings.Repeat(" ", padding)
-	paddingText := fmt.Sprintf("%s%s", paddingLeft, color(text, colorCode))
-	line := strings.Repeat("=", border)
-
-	return fmt.Sprintf("%s\n%s\n%s", line, paddingText, line)
+var dockerContainers = []string{
+	"metasploit-framework", "armitage", "spiderfoot",
+	"DVWA", "sysreptor-app", "nessus-managed",
 }
 
-func errorMaker(err error, errorMessage string) {
+var pythonPipx = []string{
+	"SEToolKit", "exegol",
+}
+
+var snapPackages = []string{
+	"sublime-text",
+}
+
+// ========================== MAPA DE PAQUETES POR DISTRO ==========================
+var packageMap = map[string]map[string]string{
+	"mysql-server": {
+		"ubuntu": "mysql-server",
+		"debian": "mysql-server",
+		"fedora": "mariadb-server",
+		"centos": "mariadb-server",
+		"arch":   "mariadb",
+	},
+	"uuid-runtime": {
+		"ubuntu": "uuid-runtime",
+		"debian": "uuid-runtime",
+		"fedora": "uuid",
+		"centos": "uuid",
+		"arch":   "util-linux",
+	},
+	"geoip-bin": {
+		"ubuntu": "geoip-bin",
+		"debian": "geoip-bin",
+		"fedora": "GeoIP",
+		"centos": "GeoIP",
+		"arch":   "geoip",
+	},
+}
+
+// ========================== DETECCIÓN DE DISTRIBUCIÓN ==========================
+func detectDistro() string {
+	content, err := os.ReadFile("/etc/os-release")
 	if err != nil {
-		fmt.Printf("\r[ %s ] %s\n", color("Error", "31"), errorMessage)
-		os.Exit(1)
+		return "unknown"
+	}
+	text := strings.ToLower(string(content))
+	switch {
+	case strings.Contains(text, "ubuntu"):
+		return "ubuntu"
+	case strings.Contains(text, "debian"):
+		return "debian"
+	case strings.Contains(text, "fedora"):
+		return "fedora"
+	case strings.Contains(text, "centos"):
+		return "centos"
+	case strings.Contains(text, "arch"):
+		return "arch"
+	case strings.Contains(text, "opensuse"):
+		return "opensuse"
+	default:
+		return "unknown"
 	}
 }
 
-func requirement() bool {
-	currentUser, err := user.Current()
-	errorMaker(err, "Cannot get current user")
-	if currentUser.Uid == "0" {
-		return true
+func detectPkgManager(distro string) string {
+	switch distro {
+	case "ubuntu", "debian":
+		return "apt"
+	case "fedora":
+		return "dnf"
+	case "centos":
+		return "yum"
+	case "arch":
+		return "pacman"
+	case "opensuse":
+		return "zypper"
+	default:
+		return ""
 	}
-	return false
 }
 
-func checkDependencies() bool {
-	dependencies := []string{"sudo", "tee"}
-	missing := []string{}
-	fmt.Println(len(missing))
-	for _, dep := range dependencies {
-		if !isInstalled(dep) {
-			missing = append(missing, dep)
-		}
-	}
-	fmt.Println(len(missing))
-
-	if len(missing) > 0 {
-		text := fmt.Sprintf("%s %s", color("Missing dependencies:", "33"), color(strings.Join(missing, ", "), "36"))
-		fmt.Println(message(text, "33"))
-		return false
-	}
-
-	return true
+// ========================== EJECUCIÓN DE COMANDOS ==========================
+func runCommand(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
-func isInstalled(program string) bool {
-	cmd := exec.Command("command", "-v", program)
-	err := cmd.Run()
-	return err == nil
-}
-
-func updater() {
-	commands := [][]string{
-		{"apt-get", "update", "-qq"},
-		{"apt-get", "full-upgrade", "-yq"},
-		{"dnf", "makecache", "--quiet"},
-		{"dnf", "upgrade", "-y"},
-		{"yum", "makecache", "fast", "--quiet"},
-		{"yum", "update", "-y"},
-		{"zypper", "refresh", "--non-interactive"},
-		{"zypper", "update", "--non-interactive"},
-		{"pacman", "-Syu", "--noconfirm"},
-		{"microdnf", "update", "-y"},
-	}
-
-	for i := 0; i < len(commands); i += 2 {
-		if isInstalled(commands[i][0]) {
-			if err := exec.Command("sudo", commands[i]...).Run(); err != nil {
-				fmt.Println(message("Error updating package cache.", "31"))
-				os.Exit(1)
-			}
-			if err := exec.Command("sudo", commands[i+1]...).Run(); err != nil {
-				fmt.Println(message("Error updating packages.", "31"))
-				os.Exit(1)
-			}
-			fmt.Println(message("System update completed successfully.", "32"))
-			return
+func installSystemPackage(pkgName string, pkgManager string, distro string) {
+	// Mapear paquete según distro
+	if m, ok := packageMap[pkgName]; ok {
+		if mapped, exists := m[distro]; exists {
+			pkgName = mapped
 		}
 	}
 
-	fmt.Println(message("No compatible package manager found.", "31"))
-	os.Exit(1)
+	fmt.Printf("[..] Instalando %s...\n", pkgName)
+
+	var cmdErr error
+	switch pkgManager {
+	case "apt":
+		cmdErr = runCommand("sudo", "apt-get", "install", "-y", pkgName)
+	case "dnf":
+		cmdErr = runCommand("sudo", "dnf", "install", "-y", pkgName)
+	case "yum":
+		cmdErr = runCommand("sudo", "yum", "install", "-y", pkgName)
+	case "pacman":
+		cmdErr = runCommand("sudo", "pacman", "-S", "--noconfirm", pkgName)
+	case "zypper":
+		cmdErr = runCommand("sudo", "zypper", "--non-interactive", "install", pkgName)
+	default:
+		fmt.Printf("[Error] Gestor de paquetes desconocido para %s\n", pkgName)
+		return
+	}
+
+	if cmdErr != nil {
+		fmt.Printf("[Error] Fallo al instalar %s: %v\n", pkgName, cmdErr)
+	} else {
+		fmt.Printf("[OK] %s instalado.\n", pkgName)
+	}
 }
 
+// ========================== INSTALACIÓN DOCKER ==========================
+func installDocker(distro string, pkgManager string) error {
+	fmt.Println("[..] Instalando Docker...")
+	switch distro {
+	case "ubuntu", "debian":
+		runCommand("sudo", "apt-get", "update")
+		runCommand("sudo", "apt-get", "install", "-y", "ca-certificates", "curl", "gnupg", "lsb-release")
+		runCommand("sudo", "mkdir", "-p", "/etc/apt/keyrings")
+		runCommand("sudo", "curl", "-fsSL", "https://download.docker.com/linux/"+distro+"/gpg", "-o", "/etc/apt/keyrings/docker.gpg")
+		runCommand("sudo", "bash", "-c", fmt.Sprintf(`echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/%s %s stable" > /etc/apt/sources.list.d/docker.list`, distro, os.Getenv("VERSION_CODENAME")))
+		runCommand("sudo", "apt-get", "update")
+		runCommand("sudo", "apt-get", "install", "-y", "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin", "docker-ce-rootless-extras")
+	default:
+		fmt.Println("[Aviso] Instalación Docker solo automatizada para Debian/Ubuntu. Debes instalar manualmente en otras distros.")
+	}
+	return nil
+}
+
+// ========================== FUNCIÓN PRINCIPAL ==========================
 func main() {
-	cmd := exec.Command("clear")
-	cmd.Run()
+	distro := detectDistro()
+	pkgManager := detectPkgManager(distro)
 
-	if requirement() {
-		fmt.Println(message("Root user is not allowed to execute this script!", "33"))
-		os.Exit(1)
+	fmt.Printf("Distro detectada: %s, Gestor de paquetes: %s\n", distro, pkgManager)
+
+	// Instalación de paquetes de sistema
+	for _, pkg := range systemPackages {
+		installSystemPackage(pkg, pkgManager, distro)
 	}
 
-	if !checkDependencies() {
-		os.Exit(1)
+	// Instalación Docker
+	if err := installDocker(distro, pkgManager); err != nil {
+		fmt.Println("[Error] Fallo instalando Docker:", err)
+	} else {
+		fmt.Println("[OK] Docker instalado.")
 	}
 
-	updater()
+	// Aquí puedes agregar instalación de contenedores, Python/pipx y Snap
+	fmt.Println("[..] Instalación de contenedores y herramientas Python/pipx y Snap no implementada aún en este ejemplo.")
 }
